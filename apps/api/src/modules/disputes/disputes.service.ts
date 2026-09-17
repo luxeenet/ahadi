@@ -6,12 +6,13 @@ export class DisputesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createDispute(userId: string, data: { commitmentId: string; reason: string }): Promise<any> {
-    const dispute = await this.prisma.dispute.create({
+    const dispute = await this.prisma.commitmentDispute.create({
       data: {
         commitmentId: data.commitmentId,
         raisedById: userId,
         reason: data.reason,
-        status: 'RAISED',
+        claim: data.reason,
+        status: 'OPEN',
       },
     });
 
@@ -25,7 +26,7 @@ export class DisputesService {
   }
 
   async getDisputes(commitmentId?: string): Promise<any[]> {
-    return this.prisma.dispute.findMany({
+    return this.prisma.commitmentDispute.findMany({
       where: {
         ...(commitmentId ? { commitmentId } : {}),
       },

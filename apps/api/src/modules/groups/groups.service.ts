@@ -5,22 +5,22 @@ import { PrismaService } from '../../common/database/prisma.service';
 export class GroupsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createGroup(creatorUserId: string, data: { name: string; type?: string; description?: string }): Promise<any> {
+  async createGroup(creatorUserId: string, data: { name: string; type?: any; description?: string }): Promise<any> {
     const group = await this.prisma.group.create({
       data: {
         name: data.name,
-        type: data.type || 'CHAMA_POOL',
+        type: 'COMMUNITY',
         description: data.description,
         createdById: creatorUserId,
-        memberships: {
+        members: {
           create: {
             userId: creatorUserId,
-            role: 'ADMIN',
+            role: 'OWNER',
           },
         },
       },
       include: {
-        memberships: true,
+        members: true,
       },
     });
 
@@ -28,14 +28,14 @@ export class GroupsService {
   }
 
   async getUserGroups(userId: string): Promise<any[]> {
-    const memberships = await this.prisma.groupMembership.findMany({
+    const memberships = await this.prisma.groupMember.findMany({
       where: { userId },
       include: {
         group: true,
       },
     });
 
-    return memberships.map((m) => ({
+    return memberships.map((m: any) => ({
       id: m.group.id,
       name: m.group.name,
       type: m.group.type,

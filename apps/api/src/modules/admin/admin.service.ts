@@ -9,7 +9,7 @@ export class AdminService {
     const totalUsers = await this.prisma.user.count();
     const totalBusinesses = await this.prisma.business.count();
     const totalCommitments = await this.prisma.commitment.count();
-    const totalDisputes = await this.prisma.dispute.count();
+    const totalDisputes = await this.prisma.commitmentDispute.count();
 
     return {
       metrics: {

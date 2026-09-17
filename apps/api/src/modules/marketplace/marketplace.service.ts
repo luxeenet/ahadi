@@ -11,9 +11,6 @@ export class MarketplaceService {
         ...(category ? { category } : {}),
         ...(query ? { name: { contains: query } } : {}),
       },
-      include: {
-        memberships: true,
-      },
       take: 20,
     });
 
