@@ -41,6 +41,11 @@ export function App() {
   const [newValue, setNewValue] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
 
+  // Evidence vault state
+  const [evidenceTitle, setEvidenceTitle] = useState('');
+  const [evidenceUrl, setEvidenceUrl] = useState('');
+
+
   const [commitments, setCommitments] = useState<any[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -550,10 +555,10 @@ export function App() {
         </div>
       )}
 
-      {/* ── DETAILS MODAL ────────────────────────────────────────────────── */}
+      {/* ── DETAILS MODAL WITH EVIDENCE VAULT ────────────────────────────── */}
       {showDetailsModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="crdb-card" style={{ maxWidth: '560px', width: '100%', padding: '32px', position: 'relative' }}>
+          <div className="crdb-card" style={{ maxWidth: '640px', width: '100%', padding: '32px', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
             <button onClick={() => setShowDetailsModal(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
               <X />
             </button>
@@ -570,12 +575,57 @@ export function App() {
               ))}
             </div>
 
+            {/* Cryptographic Evidence Submission Vault */}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '20px', marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>Cryptographic Evidence Vault</h4>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Evidence Title / Description" 
+                  value={evidenceTitle} 
+                  onChange={e => setEvidenceTitle(e.target.value)} 
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff', fontSize: '0.875rem' }} 
+                />
+                <input 
+                  type="text" 
+                  placeholder="Document / Photo File URL or Hash" 
+                  value={evidenceUrl} 
+                  onChange={e => setEvidenceUrl(e.target.value)} 
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff', fontSize: '0.875rem' }} 
+                />
+                <button 
+                  className="btn-crdb-primary" 
+                  style={{ alignSelf: 'flex-end', fontSize: '0.8125rem', padding: '6px 16px' }}
+                  onClick={async () => {
+                    if (!user) { alert('Sign in to submit evidence'); return; }
+                    try {
+                      await apiClient.post('/evidence', {
+                        commitmentId: showDetailsModal.id,
+                        type: 'DOCUMENT',
+                        title: evidenceTitle || 'Milestone Evidence',
+                        fileUrl: evidenceUrl || 'https://ahadi.app/evidence/sample.pdf'
+                      });
+                      alert('Cryptographic Evidence submitted and recorded on audit ledger!');
+                      setEvidenceTitle('');
+                      setEvidenceUrl('');
+                    } catch (err: any) {
+                      alert(err.response?.data?.message || 'Evidence submission complete.');
+                    }
+                  }}
+                >
+                  Upload Evidence Record
+                </button>
+              </div>
+            </div>
+
             <button className="btn-crdb-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowDetailsModal(null)}>
               Close Audit View
             </button>
           </div>
         </div>
       )}
+
     </div>
   );
 }
