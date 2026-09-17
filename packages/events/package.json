@@ -1,0 +1,19 @@
+{
+  "name": "@ahadi/events",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Domain event definitions and event bus for AHADI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ahadi/types": "workspace:*",
+    "@ahadi/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

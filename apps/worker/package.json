@@ -1,0 +1,31 @@
+{
+  "name": "@ahadi/worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AHADI BullMQ Worker Process",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "ts-node --transpile-only -r tsconfig-paths/register src/main.ts",
+    "start": "node dist/main",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ahadi/config": "workspace:*",
+    "@ahadi/database": "workspace:*",
+    "@ahadi/shared": "workspace:*",
+    "@ahadi/types": "workspace:*",
+    "bullmq": "^5.12.7",
+    "ioredis": "^5.4.1",
+    "pino": "^9.3.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.4.5"
+  }
+}

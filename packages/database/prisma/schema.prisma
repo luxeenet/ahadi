@@ -1,0 +1,1498 @@
+// =============================================================================
+// AHADI — Prisma Schema
+// Database: PostgreSQL 16
+// ORM: Prisma 5
+//
+// Design principles:
+//   - ULID identifiers (application-generated, sortable)
+//   - UTC timestamps everywhere
+//   - Immutable append-only tables for audit, ledger, events
+//   - Soft deletes (deletedAt) ONLY for user-facing entities
+//   - Financial and audit records are NEVER deleted
+//   - Foreign keys enforced at DB level
+//   - JSONB for flexible metadata (not for queryable business fields)
+// =============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DELETED
+}
+
+enum OtpPurpose {
+  VERIFY_PHONE
+  VERIFY_EMAIL
+  LOGIN
+  RESET_PASSWORD
+  MFA
+}
+
+enum VerificationLevel {
+  UNVERIFIED
+  BASIC_VERIFIED
+  IDENTITY_VERIFIED
+  BUSINESS_VERIFIED
+  TRANSACTION_VERIFIED
+  PROFESSIONAL_VERIFIED
+}
+
+enum VisibilityScope {
+  PRIVATE
+  PARTICIPANTS_ONLY
+  GROUP_ONLY
+  VERIFIED_PARTNERS
+  PUBLIC
+}
+
+enum BusinessMemberRole {
+  OWNER
+  ADMIN
+  EMPLOYEE
+  VIEWER
+}
+
+enum BusinessStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_REVIEW
+  CLOSED
+}
+
+enum BusinessVerificationType {
+  PHONE
+  EMAIL
+  BUSINESS_REGISTRATION
+  TAX
+  ADDRESS
+  BANK_ACCOUNT
+  PROFESSIONAL_CERTIFICATE
+  IDENTITY
+}
+
+enum VerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+enum GroupType {
+  SAVINGS
+  COMMUNITY
+  PROJECT
+  SPORTS
+  BUSINESS
+  EVENT
+  CUSTOM
+}
+
+enum GroupMemberRole {
+  OWNER
+  ADMIN
+  TREASURER
+  MODERATOR
+  MEMBER
+  VIEWER
+}
+
+enum GroupStatus {
+  ACTIVE
+  ARCHIVED
+  CLOSED
+}
+
+enum CommitmentCategory {
+  SERVICE
+  DELIVERY
+  PAYMENT
+  PROJECT
+  MILESTONE
+  CONTRIBUTION
+  APPOINTMENT
+  RENT
+  REPAIR
+  SUPPLY
+  CUSTOM
+}
+
+enum CommitmentStatus {
+  DRAFT
+  PROPOSED
+  PENDING_ACCEPTANCE
+  ACCEPTED
+  ACTIVE
+  AT_RISK
+  OVERDUE
+  PARTIALLY_COMPLETED
+  COMPLETED
+  VERIFIED
+  DISPUTED
+  RESOLVED
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+
+enum CommitmentParticipantRole {
+  PROMISOR
+  PROMISEE
+  WITNESS
+  GUARANTOR
+  OBSERVER
+}
+
+enum ParticipantEntityType {
+  USER
+  BUSINESS
+  GROUP
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  VERIFIED
+  OVERDUE
+  CANCELLED
+}
+
+enum MilestoneDependencyType {
+  FINISH_TO_START
+  START_TO_START
+  FINISH_TO_FINISH
+  START_TO_FINISH
+}
+
+enum CommitmentTermType {
+  DELIVERABLE
+  CONDITION
+  PAYMENT_TERM
+  PENALTY
+  CUSTOM
+}
+
+enum EvidenceType {
+  PHOTO
+  VIDEO
+  DOCUMENT
+  SIGNATURE
+  LOCATION
+  PAYMENT
+  DELIVERY_SCAN
+  SYSTEM_EVENT
+  RECEIPT
+  INVOICE
+  OTHER
+}
+
+enum EvidenceVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+  DISPUTED
+}
+
+enum CommitmentEventType {
+  CREATED
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  STARTED
+  EVIDENCE_ADDED
+  MILESTONE_COMPLETED
+  MILESTONE_VERIFIED
+  COMPLETED
+  VERIFIED
+  CANCELLED
+  DISPUTED
+  RESOLVED
+  STATUS_CHANGED
+  AT_RISK_FLAGGED
+  OVERDUE_FLAGGED
+  DEADLINE_EXTENDED
+  TERM_ADDED
+  TERM_MODIFIED
+  PARTICIPANT_ADDED
+  SYSTEM_CHECK
+}
+
+enum RiskLevel {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum TrustEntityType {
+  USER
+  BUSINESS
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentProvider {
+  MOCK
+  MPESA
+  TIGOPESA
+  AIRTEL_MONEY
+  BANK_TRANSFER
+  CARD
+}
+
+enum LedgerAccountType {
+  RECEIVABLE
+  PAYABLE
+  ESCROW
+  FEE
+  SYSTEM
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  EVIDENCE_REQUESTED
+  MEDIATION
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+enum ConversationType {
+  DIRECT
+  COMMITMENT
+  PROJECT
+  GROUP
+  SUPPORT
+}
+
+enum MessageType {
+  TEXT
+  ATTACHMENT
+  SYSTEM
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum SystemRole {
+  USER
+  SUPPORT
+  MODERATOR
+  VERIFIER
+  FINANCE_ADMIN
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OutboxEventStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+  DEAD_LETTER
+}
+
+enum FraudSignalEntityType {
+  USER
+  BUSINESS
+  COMMITMENT
+  PAYMENT
+  EVIDENCE
+}
+
+enum AccountRestrictionType {
+  COMMITMENT_LIMIT
+  PAYMENT_LIMIT
+  READ_ONLY
+  SUSPENDED
+  SHADOW_RESTRICTED
+}
+
+enum PriceType {
+  FIXED
+  HOURLY
+  NEGOTIABLE
+  QUOTE_REQUIRED
+}
+
+// =============================================================================
+// IDENTITY & AUTH
+// =============================================================================
+
+/// Core user identity record. Separates auth identity from profile data.
+model User {
+  id        String     @id @default(cuid()) @map("id") @db.VarChar(26)
+  publicId  String     @unique @map("public_id") @db.VarChar(20)
+  phone     String?    @unique @db.VarChar(20)
+  email     String?    @unique @db.VarChar(255)
+
+  phoneVerifiedAt DateTime? @map("phone_verified_at")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+
+  status     UserStatus @default(ACTIVE)
+  systemRole SystemRole @default(USER) @map("system_role")
+  mfaEnabled Boolean    @default(false) @map("mfa_enabled")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  credentials        UserCredential?
+  refreshTokens      RefreshToken[]
+  otpRecords         OtpRecord[]
+  sessions           UserSession[]
+  profile            UserProfile?
+  identityVerifications IdentityVerification[]
+
+  businessMemberships   BusinessMember[]
+  ownedBusinesses       Business[]           @relation("BusinessOwner")
+  groupMemberships      GroupMember[]
+  createdGroups         Group[]
+
+  createdCommitments    Commitment[]         @relation("CommitmentCreator")
+  promisorCommitments   Commitment[]         @relation("CommitmentPromisorUser")
+  promiseeCommitments   Commitment[]         @relation("CommitmentPromiseeUser")
+  commitmentParticipants CommitmentParticipant[]
+  assignedMilestones    CommitmentMilestone[]
+  uploadedEvidence      CommitmentEvidence[]
+  verifiedEvidence      CommitmentEvidence[] @relation("EvidenceVerifier")
+  commitmentEvents      CommitmentEvent[]
+
+  trustProfile          TrustProfile?        @relation("UserTrustProfile")
+  raisedDisputes        CommitmentDispute[]  @relation("DisputeRaisedBy")
+  resolvedDisputes      CommitmentDispute[]  @relation("DisputeResolvedBy")
+  disputeMessages       DisputeMessage[]
+  verifiedBusinesses    BusinessVerification[] @relation("VerifiedByAdmin")
+
+  paymentIntentsCreated PaymentIntent[]      @relation("PaymentIntentCreator")
+  paymentIntentsPayer   PaymentIntent[]      @relation("PaymentIntentPayer")
+  paymentIntentsPayee   PaymentIntent[]      @relation("PaymentIntentPayee")
+  ledgerAccounts        LedgerAccount[]
+
+  conversationParticipants ConversationParticipant[]
+  sentMessages          Message[]
+  notifications         Notification[]
+
+  auditLogsAsActor      AuditLog[]           @relation("AuditActor")
+  fraudSignalReviewer   FraudSignal[]        @relation("FraudSignalReviewer")
+  imposedRestrictions   AccountRestriction[] @relation("RestrictionImposedBy")
+  userRestrictions      AccountRestriction[] @relation("UserRestriction")
+
+  createdTemplates      CommitmentTemplate[]
+  consentRecords        ConsentRecord[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+/// Separated from User to allow credential rotation without affecting identity
+model UserCredential {
+  id                 String    @id @default(cuid()) @db.VarChar(26)
+  userId             String    @unique @map("user_id") @db.VarChar(26)
+  passwordHash       String?   @map("password_hash")
+  lastPasswordChange DateTime? @map("last_password_change")
+  failedAttempts     Int       @default(0) @map("failed_attempts")
+  lockedUntil        DateTime? @map("locked_until")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_credentials")
+}
+
+/// Opaque refresh tokens stored server-side for revocation capability
+model RefreshToken {
+  id         String    @id @default(cuid()) @db.VarChar(26)
+  userId     String    @map("user_id") @db.VarChar(26)
+  tokenHash  String    @unique @map("token_hash")
+  deviceId   String?   @map("device_id")
+  deviceName String?   @map("device_name")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model OtpRecord {
+  id        String     @id @default(cuid()) @db.VarChar(26)
+  userId    String     @map("user_id") @db.VarChar(26)
+  purpose   OtpPurpose
+  codeHash  String     @map("code_hash")
+  attempts  Int        @default(0)
+  expiresAt DateTime   @map("expires_at")
+  usedAt    DateTime?  @map("used_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("otp_records")
+}
+
+model UserSession {
+  id        String    @id @default(cuid()) @db.VarChar(26)
+  userId    String    @map("user_id") @db.VarChar(26)
+  deviceId  String?   @map("device_id")
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent")
+  lastSeen  DateTime  @default(now()) @map("last_seen")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+// =============================================================================
+// PROFILES
+// =============================================================================
+
+model UserProfile {
+  id          String          @id @default(cuid()) @db.VarChar(26)
+  userId      String          @unique @map("user_id") @db.VarChar(26)
+  firstName   String          @map("first_name") @db.VarChar(100)
+  lastName    String          @map("last_name") @db.VarChar(100)
+  displayName String?         @map("display_name") @db.VarChar(150)
+  avatarUrl   String?         @map("avatar_url")
+  coverUrl    String?         @map("cover_url")
+  bio         String?         @db.VarChar(500)
+  locationText String?        @map("location_text")
+  locationLat Decimal?        @map("location_lat") @db.Decimal(9, 6)
+  locationLng Decimal?        @map("location_lng") @db.Decimal(9, 6)
+  timezone    String          @default("Africa/Dar_es_Salaam")
+  locale      String          @default("sw-TZ") @db.VarChar(10)
+  currency    String          @default("TZS") @db.VarChar(3)
+  visibility  VisibilityScope @default(PUBLIC)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model IdentityVerification {
+  id          String             @id @default(cuid()) @db.VarChar(26)
+  userId      String             @map("user_id") @db.VarChar(26)
+  level       VerificationLevel
+  status      VerificationStatus @default(PENDING)
+  provider    String?
+  providerRef String?            @map("provider_ref")
+  documentType String?           @map("document_type")
+  verifiedAt  DateTime?          @map("verified_at")
+  expiresAt   DateTime?          @map("expires_at")
+  metadata    Json?
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@map("identity_verifications")
+}
+
+// =============================================================================
+// BUSINESSES
+// =============================================================================
+
+model Business {
+  id                String         @id @default(cuid()) @db.VarChar(26)
+  publicId          String         @unique @map("public_id") @db.VarChar(20)
+  ownerId           String         @map("owner_id") @db.VarChar(26)
+  name              String         @db.VarChar(200)
+  slug              String         @unique @db.VarChar(200)
+  category          String         @db.VarChar(100)
+  subcategory       String?        @db.VarChar(100)
+  description       String?        @db.Text
+  logoUrl           String?        @map("logo_url")
+  coverUrl          String?        @map("cover_url")
+  phone             String?        @db.VarChar(20)
+  email             String?        @db.VarChar(255)
+  website           String?
+  address           String?        @db.Text
+  locationLat       Decimal?       @map("location_lat") @db.Decimal(9, 6)
+  locationLng       Decimal?       @map("location_lng") @db.Decimal(9, 6)
+  serviceRadiusKm   Int?           @map("service_radius_km")
+  status            BusinessStatus @default(ACTIVE)
+  verificationLevel VerificationLevel @default(UNVERIFIED) @map("verification_level")
+  metadata          Json?
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  deletedAt         DateTime?      @map("deleted_at")
+
+  owner       User   @relation("BusinessOwner", fields: [ownerId], references: [id])
+  members     BusinessMember[]
+  services    BusinessService[]
+  serviceAreas BusinessServiceArea[]
+  verifications BusinessVerification[]
+  trustProfile TrustProfile?          @relation("BusinessTrustProfile")
+  promisorCommitments Commitment[]    @relation("CommitmentPromisorBusiness")
+  promiseeCommitments Commitment[]    @relation("CommitmentPromiseeBusiness")
+  commitmentParticipants CommitmentParticipant[]
+  paymentIntentsPayee PaymentIntent[] @relation("PaymentIntentPayeeBusiness")
+  ledgerAccounts LedgerAccount[]
+  businessRestrictions AccountRestriction[] @relation("BusinessRestriction")
+
+  @@index([ownerId])
+  @@index([category])
+  @@index([status])
+  @@index([verificationLevel])
+  @@index([deletedAt])
+  @@map("businesses")
+}
+
+model BusinessMember {
+  id         String             @id @default(cuid()) @db.VarChar(26)
+  businessId String             @map("business_id") @db.VarChar(26)
+  userId     String             @map("user_id") @db.VarChar(26)
+  role       BusinessMemberRole
+  title      String?            @db.VarChar(100)
+  joinedAt   DateTime           @default(now()) @map("joined_at")
+  leftAt     DateTime?          @map("left_at")
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([businessId, userId])
+  @@index([userId])
+  @@map("business_members")
+}
+
+model BusinessService {
+  id          String    @id @default(cuid()) @db.VarChar(26)
+  businessId  String    @map("business_id") @db.VarChar(26)
+  name        String    @db.VarChar(200)
+  description String?   @db.Text
+  category    String?   @db.VarChar(100)
+  priceFrom   Decimal?  @map("price_from") @db.Decimal(15, 2)
+  priceTo     Decimal?  @map("price_to") @db.Decimal(15, 2)
+  currency    String    @default("TZS") @db.VarChar(3)
+  priceType   PriceType @default(NEGOTIABLE) @map("price_type")
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId, active])
+  @@map("business_services")
+}
+
+model BusinessVerification {
+  id          String                   @id @default(cuid()) @db.VarChar(26)
+  businessId  String                   @map("business_id") @db.VarChar(26)
+  type        BusinessVerificationType
+  status      VerificationStatus       @default(PENDING)
+  provider    String?
+  providerRef String?                  @map("provider_ref")
+  documentUrl String?                  @map("document_url")
+  verifiedAt  DateTime?                @map("verified_at")
+  verifiedBy  String?                  @map("verified_by") @db.VarChar(26)
+  expiresAt   DateTime?                @map("expires_at")
+  notes       String?                  @db.Text
+  metadata    Json?
+  createdAt   DateTime                 @default(now()) @map("created_at")
+  updatedAt   DateTime                 @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+  verifier User?    @relation("VerifiedByAdmin", fields: [verifiedBy], references: [id])
+
+  @@index([businessId, status])
+  @@map("business_verifications")
+}
+
+model BusinessServiceArea {
+  id         String  @id @default(cuid()) @db.VarChar(26)
+  businessId String  @map("business_id") @db.VarChar(26)
+  name       String? @db.VarChar(100)
+  type       String  @db.VarChar(20) // RADIUS | REGION | CUSTOM
+  centerLat  Decimal? @map("center_lat") @db.Decimal(9, 6)
+  centerLng  Decimal? @map("center_lng") @db.Decimal(9, 6)
+  radiusKm   Int?    @map("radius_km")
+  regionName String? @map("region_name") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId])
+  @@map("business_service_areas")
+}
+
+// =============================================================================
+// GROUPS
+// =============================================================================
+
+model Group {
+  id          String      @id @default(cuid()) @db.VarChar(26)
+  publicId    String      @unique @map("public_id") @db.VarChar(20)
+  name        String      @db.VarChar(200)
+  slug        String      @unique @db.VarChar(200)
+  type        GroupType
+  description String?     @db.Text
+  avatarUrl   String?     @map("avatar_url")
+  coverUrl    String?     @map("cover_url")
+  visibility  VisibilityScope @default(PRIVATE)
+  status      GroupStatus @default(ACTIVE)
+  settings    Json?
+  createdById String      @map("created_by_id") @db.VarChar(26)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  createdBy User          @relation(fields: [createdById], references: [id])
+  members   GroupMember[]
+  promiseeCommitments Commitment[] @relation("CommitmentPromiseeGroup")
+  conversations Conversation[]
+
+  @@index([type, status])
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String          @id @default(cuid()) @db.VarChar(26)
+  groupId   String          @map("group_id") @db.VarChar(26)
+  userId    String          @map("user_id") @db.VarChar(26)
+  role      GroupMemberRole @default(MEMBER)
+  joinedAt  DateTime        @default(now()) @map("joined_at")
+  leftAt    DateTime?       @map("left_at")
+  invitedBy String?         @map("invited_by") @db.VarChar(26)
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+// =============================================================================
+// COMMITMENT ENGINE
+// =============================================================================
+
+/// Configurable templates define what a commitment of each category looks like.
+/// Templates drive the form UI, evidence requirements, and milestone defaults.
+model CommitmentTemplate {
+  id                   String             @id @default(cuid()) @db.VarChar(26)
+  name                 String             @db.VarChar(200)
+  category             CommitmentCategory
+  description          String?            @db.Text
+  schema               Json               // Required/optional fields for this type
+  defaultTerms         Json?              @map("default_terms")
+  evidenceRequirements Json?              @map("evidence_requirements")
+  milestoneConfig      Json?              @map("milestone_config")
+  active               Boolean            @default(true)
+  version              Int                @default(1)
+  createdById          String?            @map("created_by_id") @db.VarChar(26)
+  isSystem             Boolean            @default(false) @map("is_system")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+  commitments Commitment[]
+
+  @@index([category, active])
+  @@map("commitment_templates")
+}
+
+/// The central entity of the AHADI platform. Generic and configurable via templates.
+model Commitment {
+  id         String @id @default(cuid()) @db.VarChar(26)
+  publicId   String @unique @map("public_id") @db.VarChar(20)  // AH-XXXXXX
+  templateId String? @map("template_id") @db.VarChar(26)
+
+  /// Self-referential: milestones / sub-commitments link to parent
+  parentId   String? @map("parent_id") @db.VarChar(26)
+
+  // ── Who created this commitment
+  creatorId  String  @map("creator_id") @db.VarChar(26)
+
+  // ── Promisor (who is making the promise)
+  promisorType     ParticipantEntityType @map("promisor_type")
+  promisorUserId   String? @map("promisor_user_id") @db.VarChar(26)
+  promisorBusinessId String? @map("promisor_business_id") @db.VarChar(26)
+
+  // ── Promisee (who the promise is made to)
+  promiseeType      ParticipantEntityType @map("promisee_type")
+  promiseeUserId    String? @map("promisee_user_id") @db.VarChar(26)
+  promiseeBusinessId String? @map("promisee_business_id") @db.VarChar(26)
+  promiseeGroupId   String? @map("promisee_group_id") @db.VarChar(26)
+
+  // ── Core fields
+  title       String             @db.VarChar(500)
+  description String?            @db.Text
+  category    CommitmentCategory
+  scope       String?            @db.Text
+  deliverables Json?
+
+  // ── Temporal (always UTC; never use client timestamps for deadlines)
+  startDate   DateTime? @map("start_date")
+  dueDate     DateTime? @map("due_date")
+  completedAt DateTime? @map("completed_at")
+  verifiedAt  DateTime? @map("verified_at")
+
+  // ── Location
+  locationText String?  @map("location_text") @db.VarChar(500)
+  locationLat  Decimal? @map("location_lat") @db.Decimal(9, 6)
+  locationLng  Decimal? @map("location_lng") @db.Decimal(9, 6)
+
+  // ── Financial
+  value        Decimal? @db.Decimal(15, 2)
+  currency     String?  @db.VarChar(3)
+  paymentTerms Json?    @map("payment_terms")
+
+  // ── State machine (enforced in application code; check constraint via index)
+  status    CommitmentStatus @default(DRAFT)
+  riskLevel RiskLevel        @default(NORMAL) @map("risk_level")
+
+  // ── Visibility
+  visibility VisibilityScope @default(PARTICIPANTS_ONLY)
+
+  metadata  Json?
+  version   Int     @default(1)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  template          CommitmentTemplate?   @relation(fields: [templateId], references: [id])
+  parent            Commitment?           @relation("CommitmentChildren", fields: [parentId], references: [id])
+  children          Commitment[]          @relation("CommitmentChildren")
+  creator           User                  @relation("CommitmentCreator", fields: [creatorId], references: [id])
+  promisorUser      User?                 @relation("CommitmentPromisorUser", fields: [promisorUserId], references: [id])
+  promisorBusiness  Business?             @relation("CommitmentPromisorBusiness", fields: [promisorBusinessId], references: [id])
+  promiseeUser      User?                 @relation("CommitmentPromiseeUser", fields: [promiseeUserId], references: [id])
+  promiseeGroup     Group?                @relation("CommitmentPromiseeGroup", fields: [promiseeGroupId], references: [id])
+  promiseeBusiness  Business?             @relation("CommitmentPromiseeBusiness", fields: [promiseeBusinessId], references: [id])
+
+  participants  CommitmentParticipant[]
+  terms         CommitmentTerm[]
+  milestones    CommitmentMilestone[]
+  evidence      CommitmentEvidence[]
+  events        CommitmentEvent[]
+  disputes      CommitmentDispute[]
+  paymentIntents PaymentIntent[]
+  verification  CommitmentVerification?
+  conversations Conversation[]
+  outboxEvents  OutboxEvent[]
+
+  @@index([publicId])
+  @@index([status])
+  @@index([creatorId])
+  @@index([promisorUserId])
+  @@index([promiseeUserId])
+  @@index([promisorBusinessId])
+  @@index([category])
+  @@index([dueDate])
+  @@index([deletedAt])
+  @@map("commitments")
+}
+
+model CommitmentParticipant {
+  id           String                    @id @default(cuid()) @db.VarChar(26)
+  commitmentId String                    @map("commitment_id") @db.VarChar(26)
+  userId       String?                   @map("user_id") @db.VarChar(26)
+  businessId   String?                   @map("business_id") @db.VarChar(26)
+  role         CommitmentParticipantRole
+  acceptedAt   DateTime?                 @map("accepted_at")
+  rejectedAt   DateTime?                 @map("rejected_at")
+  metadata     Json?
+  createdAt    DateTime                  @default(now()) @map("created_at")
+
+  commitment Commitment @relation(fields: [commitmentId], references: [id])
+  user       User?      @relation(fields: [userId], references: [id])
+  business   Business?  @relation(fields: [businessId], references: [id])
+
+  @@index([commitmentId])
+  @@index([userId])
+  @@map("commitment_participants")
+}
+
+model CommitmentTerm {
+  id           String             @id @default(cuid()) @db.VarChar(26)
+  commitmentId String             @map("commitment_id") @db.VarChar(26)
+  type         CommitmentTermType
+  title        String             @db.VarChar(300)
+  description  String?            @db.Text
+  value        Json?
+  dueDate      DateTime?          @map("due_date")
+  orderIndex   Int                @default(0) @map("order_index")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  commitment Commitment @relation(fields: [commitmentId], references: [id])
+
+  @@index([commitmentId])
+  @@map("commitment_terms")
+}
+
+model CommitmentMilestone {
+  id              String          @id @default(cuid()) @db.VarChar(26)
+  commitmentId    String          @map("commitment_id") @db.VarChar(26)
+  title           String          @db.VarChar(300)
+  description     String?         @db.Text
+  deliverables    Json?
+  status          MilestoneStatus @default(PENDING)
+  orderIndex      Int             @default(0) @map("order_index")
+  startDate       DateTime?       @map("start_date")
+  dueDate         DateTime?       @map("due_date")
+  completedAt     DateTime?       @map("completed_at")
+  verifiedAt      DateTime?       @map("verified_at")
+  paymentAmount   Decimal?        @map("payment_amount") @db.Decimal(15, 2)
+  paymentCurrency String?         @map("payment_currency") @db.VarChar(3)
+  assignedToId    String?         @map("assigned_to_id") @db.VarChar(26)
+  metadata        Json?
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  commitment    Commitment    @relation(fields: [commitmentId], references: [id])
+  assignedTo    User?         @relation(fields: [assignedToId], references: [id])
+  dependsOn     MilestoneDependency[] @relation("MilestoneDependsOn")
+  dependedOnBy  MilestoneDependency[] @relation("MilestoneDependedOnBy")
+  evidence      CommitmentEvidence[]
+  paymentIntents PaymentIntent[]
+
+  @@index([commitmentId, status])
+  @@index([dueDate])
+  @@map("commitment_milestones")
+}
+
+model MilestoneDependency {
+  id             String                  @id @default(cuid()) @db.VarChar(26)
+  milestoneId    String                  @map("milestone_id") @db.VarChar(26)
+  dependsOnId    String                  @map("depends_on_id") @db.VarChar(26)
+  dependencyType MilestoneDependencyType @default(FINISH_TO_START) @map("dependency_type")
+  createdAt      DateTime                @default(now()) @map("created_at")
+
+  milestone  CommitmentMilestone @relation("MilestoneDependsOn", fields: [milestoneId], references: [id])
+  dependsOn  CommitmentMilestone @relation("MilestoneDependedOnBy", fields: [dependsOnId], references: [id])
+
+  @@unique([milestoneId, dependsOnId])
+  @@map("milestone_dependencies")
+}
+
+// =============================================================================
+// EVIDENCE
+// =============================================================================
+
+/// Immutable evidence records. Server timestamp is authoritative.
+model CommitmentEvidence {
+  id           String       @id @default(cuid()) @db.VarChar(26)
+  commitmentId String       @map("commitment_id") @db.VarChar(26)
+  milestoneId  String?      @map("milestone_id") @db.VarChar(26)
+  uploadedById String       @map("uploaded_by_id") @db.VarChar(26)
+  type         EvidenceType
+  title        String?      @db.VarChar(300)
+  description  String?      @db.Text
+
+  // Storage
+  fileUrl      String?  @map("file_url")
+  fileKey      String?  @map("file_key")    // S3 object key
+  fileHash     String?  @map("file_hash")   // SHA-256 for integrity
+  fileSize     BigInt?  @map("file_size")
+  mimeType     String?  @map("mime_type")
+  thumbnailUrl String?  @map("thumbnail_url")
+
+  // Location evidence
+  locationLat      Decimal? @map("location_lat") @db.Decimal(9, 6)
+  locationLng      Decimal? @map("location_lng") @db.Decimal(9, 6)
+  locationAccuracy Decimal? @map("location_accuracy") @db.Decimal(8, 2)
+
+  // Temporal — server_time is authoritative; captured_at is from device (informational only)
+  capturedAt DateTime? @map("captured_at")  // device-reported (DO NOT trust for deadlines)
+  serverTime DateTime  @default(now()) @map("server_time")  // authoritative
+
+  // Verification
+  verificationStatus EvidenceVerificationStatus @default(UNVERIFIED) @map("verification_status")
+  verifiedAt         DateTime?                  @map("verified_at")
+  verifiedById       String?                    @map("verified_by_id") @db.VarChar(26)
+
+  visibility VisibilityScope @default(PARTICIPANTS_ONLY)
+  metadata   Json?
+
+  // NEVER deleted if legally/financially significant
+  createdAt DateTime @default(now()) @map("created_at")
+
+  commitment  Commitment          @relation(fields: [commitmentId], references: [id])
+  milestone   CommitmentMilestone? @relation(fields: [milestoneId], references: [id])
+  uploadedBy  User                @relation(fields: [uploadedById], references: [id])
+  verifiedBy  User?               @relation("EvidenceVerifier", fields: [verifiedById], references: [id])
+  disputeEvidence DisputeEvidence[]
+
+  @@index([commitmentId])
+  @@index([milestoneId])
+  @@index([type])
+  @@map("commitment_evidence")
+}
+
+model CommitmentVerification {
+  id           String             @id @default(cuid()) @db.VarChar(26)
+  commitmentId String             @unique @map("commitment_id") @db.VarChar(26)
+  status       VerificationStatus @default(PENDING)
+  verifiedById String?            @map("verified_by_id") @db.VarChar(26)
+  verifiedAt   DateTime?          @map("verified_at")
+  notes        String?            @db.Text
+  metadata     Json?
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  commitment Commitment @relation(fields: [commitmentId], references: [id])
+
+  @@map("commitment_verifications")
+}
+
+/// Immutable event log — never updated or deleted
+model CommitmentEvent {
+  id           String              @id @default(cuid()) @db.VarChar(26)
+  commitmentId String              @map("commitment_id") @db.VarChar(26)
+  type         CommitmentEventType
+  fromStatus   CommitmentStatus?   @map("from_status")
+  toStatus     CommitmentStatus?   @map("to_status")
+  actorId      String?             @map("actor_id") @db.VarChar(26)
+  actorType    String              @default("USER") @map("actor_type") // USER|SYSTEM|ADMIN
+  note         String?             @db.Text
+  metadata     Json?
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  commitment Commitment @relation(fields: [commitmentId], references: [id])
+  actor      User?      @relation(fields: [actorId], references: [id])
+
+  @@index([commitmentId])
+  @@index([createdAt])
+  @@map("commitment_events")
+}
+
+// =============================================================================
+// TRUST DNA
+// =============================================================================
+
+model TrustProfile {
+  id         String          @id @default(cuid()) @db.VarChar(26)
+  entityType TrustEntityType @map("entity_type")
+  entityId   String          @map("entity_id") @db.VarChar(26)
+
+  // Composite dimension scores (0–100)
+  reliabilityScore   Decimal? @map("reliability_score") @db.Decimal(5, 2)
+  completionScore    Decimal? @map("completion_score") @db.Decimal(5, 2)
+  timelinessScore    Decimal? @map("timeliness_score") @db.Decimal(5, 2)
+  communicationScore Decimal? @map("communication_score") @db.Decimal(5, 2)
+  verifiedScore      Decimal? @map("verified_score") @db.Decimal(5, 2)
+  overallScore       Decimal? @map("overall_score") @db.Decimal(5, 2)
+
+  scoreVersion      String    @default("v1") @map("score_version")
+  scoreCalculatedAt DateTime? @map("score_calculated_at")
+
+  // Raw counters (incremented by domain events; never manually set)
+  totalCreated   Int @default(0) @map("total_created")
+  totalAccepted  Int @default(0) @map("total_accepted")
+  totalCompleted Int @default(0) @map("total_completed")
+  totalVerified  Int @default(0) @map("total_verified")
+  totalCancelled Int @default(0) @map("total_cancelled")
+  totalDisputed  Int @default(0) @map("total_disputed")
+  totalResolved  Int @default(0) @map("total_resolved")
+  totalOverdue   Int @default(0) @map("total_overdue")
+  totalEarly     Int @default(0) @map("total_early")
+  totalOnTime    Int @default(0) @map("total_on_time")
+  totalLate      Int @default(0) @map("total_late")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userEntity     User?     @relation("UserTrustProfile", fields: [userId], references: [id], map: "trust_profiles_user_fk")
+  userId         String?   @unique @map("user_id") @db.VarChar(26)
+  businessEntity Business? @relation("BusinessTrustProfile", fields: [businessId], references: [id], map: "trust_profiles_business_fk")
+  businessId     String?   @unique @map("business_id") @db.VarChar(26)
+  snapshots      TrustScoreSnapshot[]
+  events         TrustScoreEvent[]
+
+  @@unique([entityType, entityId])
+  @@index([entityType, overallScore])
+  @@map("trust_profiles")
+}
+
+/// Immutable historical snapshots — never updated
+model TrustScoreSnapshot {
+  id             String   @id @default(cuid()) @db.VarChar(26)
+  trustProfileId String   @map("trust_profile_id") @db.VarChar(26)
+  snapshotDate   DateTime @map("snapshot_date") @db.Date
+  period         String   @db.VarChar(10) // DAILY|WEEKLY|MONTHLY
+  scores         Json     // Complete score breakdown
+  metrics        Json     // Raw metric values used in calculation
+  algorithmVersion String @map("algorithm_version") @db.VarChar(20)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  trustProfile TrustProfile @relation(fields: [trustProfileId], references: [id])
+
+  @@unique([trustProfileId, snapshotDate, period])
+  @@index([trustProfileId])
+  @@map("trust_score_snapshots")
+}
+
+/// Immutable event log for trust — audit trail of every score change
+model TrustScoreEvent {
+  id             String   @id @default(cuid()) @db.VarChar(26)
+  trustProfileId String   @map("trust_profile_id") @db.VarChar(26)
+  eventType      String   @map("event_type")
+  commitmentId   String?  @map("commitment_id") @db.VarChar(26)
+  impact         Json?    // Score delta breakdown
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  trustProfile TrustProfile @relation(fields: [trustProfileId], references: [id])
+
+  @@index([trustProfileId])
+  @@index([createdAt])
+  @@map("trust_score_events")
+}
+
+// =============================================================================
+// PAYMENTS & LEDGER
+// =============================================================================
+
+model PaymentIntent {
+  id              String        @id @default(cuid()) @db.VarChar(26)
+  commitmentId    String?       @map("commitment_id") @db.VarChar(26)
+  milestoneId     String?       @map("milestone_id") @db.VarChar(26)
+  createdById     String        @map("created_by_id") @db.VarChar(26)
+  payerId         String        @map("payer_id") @db.VarChar(26)
+  payeeUserId     String?       @map("payee_user_id") @db.VarChar(26)
+  payeeBusinessId String?       @map("payee_business_id") @db.VarChar(26)
+  amount          Decimal       @db.Decimal(15, 2)
+  currency        String        @db.VarChar(3)
+  description     String?       @db.Text
+  status          PaymentStatus @default(PENDING)
+  provider        PaymentProvider
+  providerRef     String?       @map("provider_ref")    // Provider's transaction ID
+  idempotencyKey  String        @unique @map("idempotency_key") // Prevents duplicates
+  metadata        Json?
+  expiresAt       DateTime?     @map("expires_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  commitment  Commitment?          @relation(fields: [commitmentId], references: [id])
+  milestone   CommitmentMilestone? @relation(fields: [milestoneId], references: [id])
+  createdBy   User                 @relation("PaymentIntentCreator", fields: [createdById], references: [id])
+  payer       User                 @relation("PaymentIntentPayer", fields: [payerId], references: [id])
+  payeeUser   User?                @relation("PaymentIntentPayee", fields: [payeeUserId], references: [id])
+  payeeBusiness Business?          @relation("PaymentIntentPayeeBusiness", fields: [payeeBusinessId], references: [id])
+  events      PaymentEvent[]
+  ledgerTransactions LedgerTransaction[]
+
+  @@index([commitmentId])
+  @@index([payerId])
+  @@index([status])
+  @@map("payment_intents")
+}
+
+/// Immutable event log for payments — never updated or deleted
+model PaymentEvent {
+  id              String   @id @default(cuid()) @db.VarChar(26)
+  paymentIntentId String   @map("payment_intent_id") @db.VarChar(26)
+  type            String
+  fromStatus      PaymentStatus? @map("from_status")
+  toStatus        PaymentStatus? @map("to_status")
+  providerData    Json?    @map("provider_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  paymentIntent PaymentIntent @relation(fields: [paymentIntentId], references: [id])
+
+  @@index([paymentIntentId])
+  @@map("payment_events")
+}
+
+/// Double-entry ledger accounts — one per entity per account type per currency
+model LedgerAccount {
+  id         String            @id @default(cuid()) @db.VarChar(26)
+  entityType String            @db.VarChar(20) // USER|BUSINESS|SYSTEM
+  entityId   String            @map("entity_id") @db.VarChar(26)
+  type       LedgerAccountType
+  currency   String            @db.VarChar(3)
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  userId         String?   @map("user_id") @db.VarChar(26)
+  businessId     String?   @map("business_id") @db.VarChar(26)
+  userEntity     User?     @relation(fields: [userId], references: [id], map: "ledger_accounts_user_fk")
+  businessEntity Business? @relation(fields: [businessId], references: [id], map: "ledger_accounts_business_fk")
+  entries        LedgerEntry[]
+
+  @@unique([entityType, entityId, type, currency])
+  @@map("ledger_accounts")
+}
+
+/// Immutable transaction records — every financial event creates a transaction
+model LedgerTransaction {
+  id              String   @id @default(cuid()) @db.VarChar(26)
+  type            String
+  paymentIntentId String?  @map("payment_intent_id") @db.VarChar(26)
+  commitmentId    String?  @map("commitment_id") @db.VarChar(26)
+  reference       String?
+  description     String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  paymentIntent PaymentIntent? @relation(fields: [paymentIntentId], references: [id])
+  entries       LedgerEntry[]
+
+  @@index([paymentIntentId])
+  @@index([createdAt])
+  @@map("ledger_transactions")
+}
+
+/// Immutable ledger entries — every transaction has balanced DEBIT + CREDIT entries
+model LedgerEntry {
+  id            String          @id @default(cuid()) @db.VarChar(26)
+  transactionId String          @map("transaction_id") @db.VarChar(26)
+  accountId     String          @map("account_id") @db.VarChar(26)
+  direction     LedgerDirection
+  amount        Decimal         @db.Decimal(15, 2) // Always positive
+  runningBalance Decimal?       @map("running_balance") @db.Decimal(15, 2)
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  transaction LedgerTransaction @relation(fields: [transactionId], references: [id])
+  account     LedgerAccount     @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+  @@index([transactionId])
+  @@map("ledger_entries")
+}
+
+// =============================================================================
+// DISPUTES
+// =============================================================================
+
+model CommitmentDispute {
+  id              String        @id @default(cuid()) @db.VarChar(26)
+  commitmentId    String        @map("commitment_id") @db.VarChar(26)
+  raisedById      String        @map("raised_by_id") @db.VarChar(26)
+  againstUserId   String?       @map("against_user_id") @db.VarChar(26)
+  againstBusinessId String?     @map("against_business_id") @db.VarChar(26)
+  reason          String        @db.Text
+  claim           String        @db.Text
+  status          DisputeStatus @default(OPEN)
+  resolution      String?       @db.Text
+  resolvedById    String?       @map("resolved_by_id") @db.VarChar(26)
+  resolvedAt      DateTime?     @map("resolved_at")
+  metadata        Json?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  commitment  Commitment  @relation(fields: [commitmentId], references: [id])
+  raisedBy    User        @relation("DisputeRaisedBy", fields: [raisedById], references: [id])
+  resolvedBy  User?       @relation("DisputeResolvedBy", fields: [resolvedById], references: [id])
+  messages    DisputeMessage[]
+  evidence    DisputeEvidence[]
+
+  @@index([commitmentId, status])
+  @@map("commitment_disputes")
+}
+
+model DisputeMessage {
+  id         String   @id @default(cuid()) @db.VarChar(26)
+  disputeId  String   @map("dispute_id") @db.VarChar(26)
+  senderId   String   @map("sender_id") @db.VarChar(26)
+  message    String   @db.Text
+  isInternal Boolean  @default(false) @map("is_internal") // Admin-only visibility
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  dispute CommitmentDispute @relation(fields: [disputeId], references: [id])
+  sender  User              @relation(fields: [senderId], references: [id])
+
+  @@index([disputeId])
+  @@map("dispute_messages")
+}
+
+model DisputeEvidence {
+  id         String   @id @default(cuid()) @db.VarChar(26)
+  disputeId  String   @map("dispute_id") @db.VarChar(26)
+  evidenceId String   @map("evidence_id") @db.VarChar(26)
+  addedById  String   @map("added_by_id") @db.VarChar(26)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  dispute  CommitmentDispute  @relation(fields: [disputeId], references: [id])
+  evidence CommitmentEvidence @relation(fields: [evidenceId], references: [id])
+
+  @@unique([disputeId, evidenceId])
+  @@map("dispute_evidence")
+}
+
+// =============================================================================
+// MESSAGING
+// =============================================================================
+
+model Conversation {
+  id           String           @id @default(cuid()) @db.VarChar(26)
+  type         ConversationType
+  commitmentId String?          @map("commitment_id") @db.VarChar(26)
+  groupId      String?          @map("group_id") @db.VarChar(26)
+  title        String?          @db.VarChar(300)
+  createdById  String           @map("created_by_id") @db.VarChar(26)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  commitment   Commitment?              @relation(fields: [commitmentId], references: [id])
+  group        Group?                   @relation(fields: [groupId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([commitmentId])
+  @@index([groupId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(cuid()) @db.VarChar(26)
+  conversationId String    @map("conversation_id") @db.VarChar(26)
+  userId         String    @map("user_id") @db.VarChar(26)
+  role           String    @default("MEMBER")
+  joinedAt       DateTime  @default(now()) @map("joined_at")
+  leftAt         DateTime? @map("left_at")
+  lastReadAt     DateTime? @map("last_read_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String      @id @default(cuid()) @db.VarChar(26)
+  conversationId String      @map("conversation_id") @db.VarChar(26)
+  senderId       String      @map("sender_id") @db.VarChar(26)
+  content        String?     @db.Text
+  type           MessageType @default(TEXT)
+  attachmentUrl  String?     @map("attachment_url")
+  attachmentType String?     @map("attachment_type")
+  replyToId      String?     @map("reply_to_id") @db.VarChar(26)
+  editedAt       DateTime?   @map("edited_at")
+  deletedAt      DateTime?   @map("deleted_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
+  replyTo      Message?     @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies      Message[]    @relation("MessageReplies")
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model Notification {
+  id        String              @id @default(cuid()) @db.VarChar(26)
+  userId    String              @map("user_id") @db.VarChar(26)
+  type      String
+  title     String              @db.VarChar(300)
+  body      String?             @db.Text
+  data      Json?
+  channel   NotificationChannel
+  status    NotificationStatus  @default(PENDING)
+  readAt    DateTime?           @map("read_at")
+  sentAt    DateTime?           @map("sent_at")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// =============================================================================
+// AUDIT LOG (IMMUTABLE)
+// =============================================================================
+
+/// Append-only audit log. Records every important action.
+/// Never updated or deleted.
+model AuditLog {
+  id           String   @id @default(cuid()) @db.VarChar(26)
+  actorId      String?  @map("actor_id") @db.VarChar(26)
+  actorType    String   @default("USER") @map("actor_type") // USER|SYSTEM|ADMIN|WORKER
+  action       String   // CommitmentCreated, PaymentInitiated, etc.
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  beforeState  Json?    @map("before_state")
+  afterState   Json?    @map("after_state")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  sessionId    String?  @map("session_id")
+  requestId    String?  @map("request_id")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// TRANSACTIONAL OUTBOX
+// =============================================================================
+
+/// Outbox events are written atomically with domain changes.
+/// A worker polls this table and publishes pending events to the bus.
+/// Guarantees at-least-once delivery even on process crash.
+model OutboxEvent {
+  id            String           @id @default(cuid()) @db.VarChar(26)
+  aggregateType String           @map("aggregate_type")
+  aggregateId   String           @map("aggregate_id")
+  eventType     String           @map("event_type")
+  eventVersion  String           @default("v1") @map("event_version")
+  payload       Json
+  status        OutboxEventStatus @default(PENDING)
+  publishedAt   DateTime?        @map("published_at")
+  failedAt      DateTime?        @map("failed_at")
+  error         String?          @db.Text
+  retryCount    Int              @default(0) @map("retry_count")
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  commitment Commitment? @relation(fields: [aggregateId], references: [id], map: "outbox_commitment_fk")
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
+// =============================================================================
+// FRAUD & INTEGRITY
+// =============================================================================
+
+model FraudSignal {
+  id          String                @id @default(cuid()) @db.VarChar(26)
+  entityType  FraudSignalEntityType @map("entity_type")
+  entityId    String                @map("entity_id")
+  signalType  String                @map("signal_type")
+  confidence  Decimal               @db.Decimal(5, 4) // 0.0000 to 1.0000
+  details     Json?
+  reviewed    Boolean               @default(false)
+  reviewedById String?              @map("reviewed_by_id") @db.VarChar(26)
+  reviewedAt  DateTime?             @map("reviewed_at")
+  actionTaken String?               @map("action_taken")
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  reviewedBy User? @relation("FraudSignalReviewer", fields: [reviewedById], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([reviewed, createdAt])
+  @@map("fraud_signals")
+}
+
+model AccountRestriction {
+  id          String                 @id @default(cuid()) @db.VarChar(26)
+  userId      String?                @map("user_id") @db.VarChar(26)
+  businessId  String?                @map("business_id") @db.VarChar(26)
+  type        AccountRestrictionType
+  reason      String                 @db.Text
+  imposedById String                 @map("imposed_by_id") @db.VarChar(26)
+  activeFrom  DateTime               @default(now()) @map("active_from")
+  activeUntil DateTime?              @map("active_until")
+  metadata    Json?
+  createdAt   DateTime               @default(now()) @map("created_at")
+
+  user       User?     @relation("UserRestriction", fields: [userId], references: [id])
+  business   Business? @relation("BusinessRestriction", fields: [businessId], references: [id])
+  imposedBy  User      @relation("RestrictionImposedBy", fields: [imposedById], references: [id])
+
+  @@index([userId])
+  @@index([businessId])
+  @@map("account_restrictions")
+}
+
+// =============================================================================
+// CONSENT
+// =============================================================================
+
+model ConsentRecord {
+  id            String    @id @default(cuid()) @db.VarChar(26)
+  userId        String    @map("user_id") @db.VarChar(26)
+  consentType   String    @map("consent_type")
+  version       String
+  acceptedAt    DateTime? @map("accepted_at")
+  withdrawnAt   DateTime? @map("withdrawn_at")
+  policyVersion String    @map("policy_version")
+  purpose       String    @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, consentType])
+  @@map("consent_records")
+}
+
+// =============================================================================
+// FEATURE FLAGS
+// =============================================================================
+
+model FeatureFlag {
+  id          String   @id @default(cuid()) @db.VarChar(26)
+  key         String   @unique @db.VarChar(100)
+  enabled     Boolean  @default(false)
+  description String?  @db.Text
+  metadata    Json?    // Rollout percentage, allowed user IDs, etc.
+  updatedById String?  @map("updated_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}

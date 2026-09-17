@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "commonjs",
+    "baseUrl": "./",
+    "paths": {
+      "@ahadi/types": ["../../packages/types/dist/index.d.ts"],
+      "@ahadi/shared": ["../../packages/shared/dist/index.d.ts"],
+      "@ahadi/database": ["../../packages/database/dist/index.d.ts"],
+      "@ahadi/config": ["../../packages/config/dist/index.d.ts"],
+      "@ahadi/events": ["../../packages/events/dist/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

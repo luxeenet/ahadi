@@ -1,0 +1,230 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  # ── Install ───────────────────────────────────────────────────────────────
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+  # ── Lint & Format ─────────────────────────────────────────────────────────
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Format check
+        run: pnpm format:check
+
+  # ── TypeScript ────────────────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+      - name: TypeScript typecheck
+        run: pnpm typecheck
+
+  # ── Unit Tests ────────────────────────────────────────────────────────────
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+      - name: Run unit tests
+        run: pnpm test:unit
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./apps/api/coverage/lcov.info
+
+  # ── Integration Tests ─────────────────────────────────────────────────────
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test-unit]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ahadi_test
+          POSTGRES_PASSWORD: ahadi_test_pass
+          POSTGRES_DB: ahadi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://ahadi_test:ahadi_test_pass@localhost:5432/ahadi_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test_secret_for_ci_minimum_32_chars_long
+      NODE_ENV: test
+      APP_URL: http://localhost:3000
+      FRONTEND_URL: http://localhost:4000
+      CORS_ORIGINS: http://localhost:4000
+      STORAGE_ENDPOINT: http://localhost:9000
+      STORAGE_BUCKET_EVIDENCE: test-evidence
+      STORAGE_BUCKET_AVATARS: test-avatars
+      STORAGE_BUCKET_DOCUMENTS: test-documents
+      STORAGE_ACCESS_KEY: test-key
+      STORAGE_SECRET_KEY: test-secret
+      EMAIL_FROM: test@ahadi.app
+      AI_PROVIDER: mock
+      PAYMENT_PROVIDER_DEFAULT: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+      - name: Run migrations
+        run: pnpm db:migrate:prod
+      - name: Run integration tests
+        run: pnpm test:integration
+
+  # ── Build ─────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test-unit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+      - name: Build all packages
+        run: pnpm build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            apps/api/dist
+            apps/worker/dist
+          retention-days: 7
+
+  # ── Docker Build ──────────────────────────────────────────────────────────
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          tags: ahadi/api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build Worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/worker/Dockerfile
+          push: false
+          tags: ahadi/worker:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
