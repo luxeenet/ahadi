@@ -191,8 +191,7 @@ export function App() {
       {/* ── TOP HEADER / NAVIGATION BAR ────────────────────────────────────── */}
       <header style={{ 
         borderBottom: '1px solid var(--border-subtle)', 
-        background: 'rgba(9, 13, 22, 0.85)', 
-        backdropFilter: 'blur(20px)',
+        background: 'var(--bg-surface)', 
         position: 'sticky',
         top: 0,
         zIndex: 50
@@ -203,18 +202,18 @@ export function App() {
             <div style={{ 
               width: '40px', 
               height: '40px', 
-              borderRadius: '12px', 
-              background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)', 
+              borderRadius: '8px', 
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)'
+              border: '1px solid #10b981'
             }}>
               <Shield style={{ color: '#ffffff', width: '22px', height: '22px' }} />
             </div>
             <div>
               <h1 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em', color: '#ffffff' }}>AHADI</h1>
-              <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.05em' }}>TRUST NETWORK</p>
+              <p style={{ fontSize: '0.6875rem', color: '#10b981', fontWeight: 700, letterSpacing: '0.05em' }}>VERIFIABLE TRUST NETWORK</p>
             </div>
           </div>
 
@@ -238,11 +237,11 @@ export function App() {
                     alignItems: 'center',
                     gap: '8px',
                     padding: '8px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    border: 'none',
-                    background: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                    color: isActive ? '#818cf8' : 'var(--text-muted)',
-                    fontWeight: isActive ? 600 : 500,
+                    borderRadius: '6px',
+                    border: isActive ? '1px solid #059669' : '1px solid transparent',
+                    background: isActive ? '#0f3127' : 'transparent',
+                    color: isActive ? '#34d399' : '#9ca3af',
+                    fontWeight: isActive ? 700 : 500,
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
@@ -256,19 +255,19 @@ export function App() {
 
           {/* Right Action */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+            <button className="btn-crdb-primary" onClick={() => setShowCreateModal(true)}>
               <Plus style={{ width: '18px', height: '18px' }} />
               New Commitment
             </button>
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '0.875rem', color: '#e5e7eb', fontWeight: 600 }}>{user.email}</span>
-                <button className="btn-secondary" style={{ padding: '6px 12px' }} onClick={() => { localStorage.removeItem('ahadi_access_token'); setUser(null); setCommitments([]); }}>
+                <button className="btn-crdb-secondary" style={{ padding: '6px 12px' }} onClick={() => { localStorage.removeItem('ahadi_access_token'); setUser(null); setCommitments([]); }}>
                   <LogOut style={{ width: '16px', height: '16px' }} />
                 </button>
               </div>
             ) : (
-              <button className="btn-secondary" onClick={() => setShowAuthModal(true)}>
+              <button className="btn-crdb-secondary" onClick={() => setShowAuthModal(true)}>
                 Sign In / Register
               </button>
             )}
@@ -276,35 +275,36 @@ export function App() {
         </div>
       </header>
 
+
       {/* ── MAIN CONTENT AREA ────────────────────────────────────────────── */}
       <main style={{ flex: 1, maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '32px 24px' }}>
         
         {/* ── DASHBOARD & COMMITMENTS TAB CONTENT ─────────────────────────── */}
         {(activeTab === 'dashboard' || activeTab === 'commitments') && (
           <>
-            <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', position: 'relative', overflow: 'hidden' }}>
+            <div className="crdb-card" style={{ padding: '32px', marginBottom: '32px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'relative', zIndex: 2, maxWidth: '720px' }}>
-                <div className="badge-trust" style={{ marginBottom: '16px' }}>
+                <div className="badge-crdb-emerald" style={{ marginBottom: '16px' }}>
                   <Sparkles style={{ width: '14px', height: '14px' }} /> Verifiable Promise & Trust Infrastructure
                 </div>
-                <h2 className="text-gradient" style={{ fontSize: '2.25rem', fontWeight: 800, lineHeight: 1.2, marginBottom: '12px' }}>
+                <h2 style={{ fontSize: '2.25rem', fontWeight: 800, lineHeight: 1.2, marginBottom: '12px', color: '#ffffff' }}>
                   Make Commitments. Prove Reliability. Build Global Trust.
                 </h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '24px' }}>
+                <p style={{ color: '#9ca3af', fontSize: '1rem', marginBottom: '24px' }}>
                   AHADI tracks, verifies, and records promise fulfillment across sectors. Your reputation is immutable and auditable.
                 </p>
                 <div style={{ display: 'flex', gap: '16px' }}>
-                  <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Overall Score</span>
+                  <div className="crdb-card" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>Overall Score</span>
                     <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>{trustProfile?.overallScore || '50.0'} / 100</span>
                   </div>
-                  <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Active Promises</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#818cf8' }}>{commitments.length} Active</span>
+                  <div className="crdb-card" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>Active Promises</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>{commitments.length} Active</span>
                   </div>
-                  <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Timeliness Score</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8' }}>{trustProfile?.timelinessScore || '50.0'}%</span>
+                  <div className="crdb-card" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>Timeliness Score</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>{trustProfile?.timelinessScore || '50.0'}%</span>
                   </div>
                 </div>
               </div>
@@ -312,8 +312,8 @@ export function App() {
 
             {/* Controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '16px' }}>
-              <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '12px', flex: 1, maxWidth: '480px' }}>
-                <Search style={{ width: '18px', height: '18px', color: 'var(--text-subtle)' }} />
+              <div className="crdb-card" style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '12px', flex: 1, maxWidth: '480px' }}>
+                <Search style={{ width: '18px', height: '18px', color: '#6b7280' }} />
                 <input 
                   type="text" 
                   placeholder="Search commitments by ID, promisor, or deliverable..." 
@@ -333,7 +333,7 @@ export function App() {
                   <button 
                     key={f.id} 
                     onClick={() => setSelectedFilter(f.id as any)}
-                    className={selectedFilter === f.id ? "btn-primary" : "btn-secondary"}
+                    className={selectedFilter === f.id ? "btn-crdb-primary" : "btn-crdb-secondary"}
                     style={{ padding: '8px 16px', fontSize: '0.875rem' }}
                   >
                     {f.label}
@@ -344,27 +344,27 @@ export function App() {
 
             {/* Cards Grid */}
             {filteredCommitments.length === 0 ? (
-              <div className="glass-panel" style={{ padding: '48px', textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>No commitments found for your account.</p>
-                <button className="btn-primary" style={{ margin: '0 auto' }} onClick={() => setShowCreateModal(true)}>
+              <div className="crdb-card" style={{ padding: '48px', textAlign: 'center' }}>
+                <p style={{ color: '#9ca3af', marginBottom: '16px' }}>No commitments found for your account.</p>
+                <button className="btn-crdb-primary" style={{ margin: '0 auto' }} onClick={() => setShowCreateModal(true)}>
                   <Plus style={{ width: '18px', height: '18px' }} /> Create First Commitment
                 </button>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
                 {filteredCommitments.map((c) => (
-                  <div key={c.id} className="glass-panel glass-panel-interactive" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div key={c.id} className="crdb-card crdb-card-interactive" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#818cf8', fontWeight: 600 }}>{c.id}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#34d399', fontWeight: 600 }}>{c.id}</span>
                         <span style={{
                           padding: '4px 10px',
                           borderRadius: '9999px',
                           fontSize: '0.75rem',
                           fontWeight: 700,
-                          background: c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.15)' : c.status === 'AT_RISK' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                          color: c.status === 'VERIFIED' ? '#34d399' : c.status === 'AT_RISK' ? '#fb7185' : '#a5b4fc',
-                          border: `1px solid ${c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.3)' : c.status === 'AT_RISK' ? 'rgba(244, 63, 94, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                          background: c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.2)' : c.status === 'AT_RISK' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(5, 150, 105, 0.2)',
+                          color: c.status === 'VERIFIED' ? '#34d399' : c.status === 'AT_RISK' ? '#f87171' : '#6ee7b7',
+                          border: `1px solid ${c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.4)' : c.status === 'AT_RISK' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(5, 150, 105, 0.4)'}`
                         }}>
                           {c.status}
                         </span>
@@ -372,13 +372,13 @@ export function App() {
 
                       <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>{c.title}</h3>
                       
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', fontSize: '0.875rem', color: '#9ca3af' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <User style={{ width: '16px', height: '16px', color: 'var(--text-subtle)' }} />
+                          <User style={{ width: '16px', height: '16px', color: '#6b7280' }} />
                           <span>Promisor: <strong style={{ color: '#f3f4f6' }}>{c.promisor}</strong></span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Clock style={{ width: '16px', height: '16px', color: 'var(--text-subtle)' }} />
+                          <Clock style={{ width: '16px', height: '16px', color: '#6b7280' }} />
                           <span>Deadline: {c.dueDate}</span>
                         </div>
                       </div>
@@ -386,10 +386,10 @@ export function App() {
 
                     <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Commitment Value</span>
+                        <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>Commitment Value</span>
                         <span style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff' }}>{c.value}</span>
                       </div>
-                      <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8125rem' }} onClick={() => setShowDetailsModal(c)}>
+                      <button className="btn-crdb-secondary" style={{ padding: '6px 12px', fontSize: '0.8125rem' }} onClick={() => setShowDetailsModal(c)}>
                         View Details <ChevronRight style={{ width: '14px', height: '14px' }} />
                       </button>
                     </div>
@@ -402,35 +402,35 @@ export function App() {
 
         {/* ── TRUST DNA TAB CONTENT ────────────────────────────────────────── */}
         {activeTab === 'trust' && (
-          <div className="glass-panel" style={{ padding: '32px' }}>
-            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px' }}>Trust DNA Profile & Score Breakdown</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+          <div className="crdb-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px', color: '#ffffff' }}>Trust DNA Profile & Score Breakdown</h2>
+            <p style={{ color: '#9ca3af', marginBottom: '32px' }}>
               Your Trust DNA is generated by evaluating your track record across multiple verifiable dimensions.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-              <div className="glass-panel" style={{ padding: '24px' }}>
+              <div className="crdb-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Reliability Score</span>
+                  <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Reliability Score</span>
                   <CheckCircle2 style={{ color: '#34d399' }} />
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>{trustProfile?.reliabilityScore || '50.0'} %</div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Based on dispute-free fulfillment</p>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Based on dispute-free fulfillment</p>
               </div>
-              <div className="glass-panel" style={{ padding: '24px' }}>
+              <div className="crdb-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Completion Score</span>
-                  <Award style={{ color: '#818cf8' }} />
+                  <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Completion Score</span>
+                  <Award style={{ color: '#10b981' }} />
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>{trustProfile?.completionScore || '50.0'} %</div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Percentage of accepted promises completed</p>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Percentage of accepted promises completed</p>
               </div>
-              <div className="glass-panel" style={{ padding: '24px' }}>
+              <div className="crdb-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Timeliness Index</span>
-                  <Clock style={{ color: '#38bdf8' }} />
+                  <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Timeliness Index</span>
+                  <Clock style={{ color: '#34d399' }} />
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>{trustProfile?.timelinessScore || '50.0'} %</div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Fulfillment before or on target deadline</p>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>Fulfillment before or on target deadline</p>
               </div>
             </div>
           </div>
@@ -438,25 +438,25 @@ export function App() {
 
         {/* ── BUSINESSES TAB CONTENT ───────────────────────────────────────── */}
         {activeTab === 'businesses' && (
-          <div className="glass-panel" style={{ padding: '32px' }}>
-            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px' }}>Verified Business Directory</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+          <div className="crdb-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px', color: '#ffffff' }}>Verified Business Directory</h2>
+            <p style={{ color: '#9ca3af', marginBottom: '32px' }}>
               Explore verified companies and professionals with publicly auditable Trust DNA.
             </p>
             {businesses.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)' }}>No registered business profiles found on backend database.</p>
+              <p style={{ color: '#9ca3af' }}>No registered business profiles found on backend database.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
                 {businesses.map((b: any) => (
-                  <div key={b.id} className="glass-panel" style={{ padding: '24px' }}>
+                  <div key={b.id} className="crdb-card" style={{ padding: '24px' }}>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
-                      <Building2 style={{ color: '#818cf8', width: '32px', height: '32px' }} />
+                      <Building2 style={{ color: '#10b981', width: '32px', height: '32px' }} />
                       <div>
                         <h4 style={{ color: '#fff', fontWeight: 700 }}>{b.name}</h4>
                         <span style={{ fontSize: '0.75rem', color: '#34d399' }}>{b.verificationLevel || 'Registered'}</span>
                       </div>
                     </div>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>{b.description || b.category}</p>
+                    <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginBottom: '16px' }}>{b.description || b.category}</p>
                   </div>
                 ))}
               </div>
@@ -466,40 +466,41 @@ export function App() {
 
         {/* ── DISPUTES TAB CONTENT ─────────────────────────────────────────── */}
         {activeTab === 'disputes' && (
-          <div className="glass-panel" style={{ padding: '32px' }}>
-            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px' }}>Dispute Resolution & Evidence Vault</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+          <div className="crdb-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px', color: '#ffffff' }}>Dispute Resolution & Evidence Vault</h2>
+            <p style={{ color: '#9ca3af', marginBottom: '32px' }}>
               Transparent evidence submission and mediator-guided dispute resolution system.
             </p>
-            <p style={{ color: 'var(--text-muted)' }}>No active disputes reported for your commitments.</p>
+            <p style={{ color: '#9ca3af' }}>No active disputes reported for your commitments.</p>
           </div>
         )}
+
 
       </main>
 
 
       {/* ── CREATE COMMITMENT MODAL ───────────────────────────────────────── */}
       {showCreateModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ maxWidth: '520px', width: '100%', padding: '32px', position: 'relative' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="crdb-card" style={{ maxWidth: '520px', width: '100%', padding: '32px', position: 'relative' }}>
             <button onClick={() => setShowCreateModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
               <X />
             </button>
-            <h3 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '20px' }}>Create Verifiable Commitment</h3>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '20px', color: '#ffffff' }}>Create Verifiable Commitment</h3>
             <form onSubmit={handleCreateCommitment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Title</label>
-                <input required type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g., Solar Installation & Electrical Wiring" style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: '#fff' }} />
+                <label style={{ fontSize: '0.8125rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>Title</label>
+                <input required type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g., Solar Installation & Electrical Wiring" style={{ width: '100%', padding: '10px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff' }} />
               </div>
               <div>
-                <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Value (TZS)</label>
-                <input required type="number" value={newValue} onChange={e => setNewValue(e.target.value)} placeholder="1200000" style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: '#fff' }} />
+                <label style={{ fontSize: '0.8125rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>Value (TZS)</label>
+                <input required type="number" value={newValue} onChange={e => setNewValue(e.target.value)} placeholder="1200000" style={{ width: '100%', padding: '10px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff' }} />
               </div>
               <div>
-                <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Target Deadline</label>
-                <input required type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: '#fff' }} />
+                <label style={{ fontSize: '0.8125rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>Target Deadline</label>
+                <input required type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff' }} />
               </div>
-              <button type="submit" className="btn-primary" style={{ marginTop: '12px', justifyContent: 'center' }}>
+              <button type="submit" className="btn-crdb-primary" style={{ marginTop: '12px', justifyContent: 'center' }}>
                 Publish Commitment
               </button>
             </form>
@@ -509,39 +510,39 @@ export function App() {
 
       {/* ── AUTH MODAL ────────────────────────────────────────────────────── */}
       {showAuthModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ maxWidth: '420px', width: '100%', padding: '32px', position: 'relative' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="crdb-card" style={{ maxWidth: '420px', width: '100%', padding: '32px', position: 'relative' }}>
             <button onClick={() => setShowAuthModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
               <X />
             </button>
-            <h3 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '20px', color: '#ffffff' }}>
               {authMode === 'LOGIN' ? 'Sign In to AHADI' : 'Create Account'}
             </h3>
             <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {authMode === 'REGISTER' && (
                 <>
                   <div>
-                    <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>First Name</label>
-                    <input required type="text" value={firstName} onChange={e => setFirstName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: '#fff' }} />
+                    <label style={{ fontSize: '0.8125rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>First Name</label>
+                    <input required type="text" value={firstName} onChange={e => setFirstName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Last Name</label>
-                    <input required type="text" value={lastName} onChange={e => setLastName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: '#fff' }} />
+                    <label style={{ fontSize: '0.8125rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>Last Name</label>
+                    <input required type="text" value={lastName} onChange={e => setLastName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff' }} />
                   </div>
                 </>
               )}
               <div>
-                <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Email Address</label>
-                <input required type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: '#fff' }} />
+                <label style={{ fontSize: '0.8125rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>Email Address</label>
+                <input required type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff' }} />
               </div>
               <div>
-                <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Password</label>
-                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: '#fff' }} />
+                <label style={{ fontSize: '0.8125rem', color: '#9ca3af', display: 'block', marginBottom: '6px' }}>Password</label>
+                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', color: '#fff' }} />
               </div>
-              <button type="submit" className="btn-primary" style={{ marginTop: '12px', justifyContent: 'center' }}>
+              <button type="submit" className="btn-crdb-primary" style={{ marginTop: '12px', justifyContent: 'center' }}>
                 {authMode === 'LOGIN' ? 'Sign In' : 'Register'}
               </button>
-              <button type="button" onClick={() => setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN')} style={{ background: 'transparent', border: 'none', color: '#818cf8', cursor: 'pointer', fontSize: '0.875rem' }}>
+              <button type="button" onClick={() => setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN')} style={{ background: 'transparent', border: 'none', color: '#34d399', cursor: 'pointer', fontSize: '0.875rem' }}>
                 {authMode === 'LOGIN' ? "Don't have an account? Register" : 'Already have an account? Sign In'}
               </button>
             </form>
@@ -551,25 +552,25 @@ export function App() {
 
       {/* ── DETAILS MODAL ────────────────────────────────────────────────── */}
       {showDetailsModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ maxWidth: '560px', width: '100%', padding: '32px', position: 'relative' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="crdb-card" style={{ maxWidth: '560px', width: '100%', padding: '32px', position: 'relative' }}>
             <button onClick={() => setShowDetailsModal(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
               <X />
             </button>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#818cf8', fontWeight: 600 }}>{showDetailsModal.id}</span>
-            <h3 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '16px' }}>{showDetailsModal.title}</h3>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#34d399', fontWeight: 600 }}>{showDetailsModal.id}</span>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '16px', color: '#ffffff' }}>{showDetailsModal.title}</h3>
             
             <div style={{ marginBottom: '20px' }}>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Milestone Progress</span>
+              <span style={{ fontSize: '0.875rem', color: '#9ca3af', display: 'block', marginBottom: '8px' }}>Milestone Progress</span>
               {showDetailsModal.milestones?.map((m: any, idx: number) => (
-                <div key={idx} style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <div key={idx} style={{ padding: '8px 12px', borderRadius: '6px', background: '#0b251d', border: '1px solid #1e5243', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
                   <span>{m.title}</span>
-                  <span style={{ fontWeight: 600, color: m.status === 'COMPLETED' || m.status === 'VERIFIED' ? '#34d399' : '#818cf8' }}>{m.status}</span>
+                  <span style={{ fontWeight: 600, color: m.status === 'COMPLETED' || m.status === 'VERIFIED' ? '#34d399' : '#10b981' }}>{m.status}</span>
                 </div>
               ))}
             </div>
 
-            <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowDetailsModal(null)}>
+            <button className="btn-crdb-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowDetailsModal(null)}>
               Close Audit View
             </button>
           </div>
@@ -580,3 +581,4 @@ export function App() {
 }
 
 export default App;
+
