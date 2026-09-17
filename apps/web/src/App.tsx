@@ -12,13 +12,15 @@ import {
   CheckCircle2,
   Building2,
   LogOut,
-  X
+  X,
+  Briefcase,
+  Scale
 } from 'lucide-react';
 import './index.css';
 import { apiClient } from './api/client';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'commitments' | 'trust' | 'businesses'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'commitments' | 'trust' | 'businesses' | 'disputes'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'ACTIVE' | 'VERIFIED' | 'AT_RISK'>('ALL');
   
@@ -36,9 +38,7 @@ export function App() {
   
   // Commitment creation form state
   const [newTitle, setNewTitle] = useState('');
-  const [newCategory] = useState('TECHNICAL_SERVICE');
   const [newValue, setNewValue] = useState('');
-  const [newPromisor] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
 
   // Local state for commitments
@@ -128,8 +128,8 @@ export function App() {
     const newCommitment = {
       id: newId,
       title: newTitle,
-      category: newCategory,
-      promisor: newPromisor || (user ? `${user.email}` : 'Current User'),
+      category: 'TECHNICAL_SERVICE',
+      promisor: user ? `${user.email}` : 'Current User',
       promisee: 'Verified Counterparty',
       status: 'ACTIVE',
       dueDate: newDueDate || '2026-10-01',
@@ -190,6 +190,7 @@ export function App() {
               { id: 'commitments', label: 'Commitments', icon: FileText },
               { id: 'trust', label: 'Trust DNA', icon: Award },
               { id: 'businesses', label: 'Businesses', icon: Building2 },
+              { id: 'disputes', label: 'Disputes', icon: Scale },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -243,8 +244,8 @@ export function App() {
       {/* ── MAIN CONTENT AREA ────────────────────────────────────────────── */}
       <main style={{ flex: 1, maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '32px 24px' }}>
         
-        {/* ── DASHBOARD TAB CONTENT ───────────────────────────────────────── */}
-        {activeTab === 'dashboard' && (
+        {/* ── DASHBOARD & COMMITMENTS TAB CONTENT ─────────────────────────── */}
+        {(activeTab === 'dashboard' || activeTab === 'commitments') && (
           <>
             <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'relative', zIndex: 2, maxWidth: '720px' }}>
@@ -386,6 +387,69 @@ export function App() {
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>99.0 %</div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Fulfillment before or on target deadline</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── BUSINESSES TAB CONTENT ───────────────────────────────────────── */}
+        {activeTab === 'businesses' && (
+          <div className="glass-panel" style={{ padding: '32px' }}>
+            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px' }}>Verified Business Directory</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+              Explore verified companies and professionals with publicly auditable Trust DNA.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              <div className="glass-panel" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+                  <Building2 style={{ color: '#818cf8', width: '32px', height: '32px' }} />
+                  <div>
+                    <h4 style={{ color: '#fff', fontWeight: 700 }}>Kibo Solar & Engineering</h4>
+                    <span style={{ fontSize: '0.75rem', color: '#34d399' }}>Verified Enterprise</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Specialized in solar installations, mini-grid wiring, and industrial power backup systems.</p>
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                  <span>Completed Contracts: <strong>48</strong></span>
+                  <span style={{ color: '#34d399', fontWeight: 700 }}>98.9 Score</span>
+                </div>
+              </div>
+
+              <div className="glass-panel" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+                  <Briefcase style={{ color: '#38bdf8', width: '32px', height: '32px' }} />
+                  <div>
+                    <h4 style={{ color: '#fff', fontWeight: 700 }}>Azam Logistics Ltd</h4>
+                    <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>Corporate Fleet</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Freight logistics, cross-border cargo delivery, and warehouse fulfillment.</p>
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                  <span>Completed Contracts: <strong>124</strong></span>
+                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>97.5 Score</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── DISPUTES TAB CONTENT ─────────────────────────────────────────── */}
+        {activeTab === 'disputes' && (
+          <div className="glass-panel" style={{ padding: '32px' }}>
+            <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px' }}>Dispute Resolution & Evidence Vault</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+              Transparent evidence submission and mediator-guided dispute resolution system.
+            </p>
+            <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid #f43f5e' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#f43f5e' }}>DISPUTE #DSP-9041</span>
+                <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700 }}>MEDIATION IN PROGRESS</span>
+              </div>
+              <h4 style={{ color: '#fff', fontWeight: 700, marginBottom: '8px' }}>Commercial Office Supply Delivery</h4>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Reason: Delivery delayed beyond agreed contract window due to customs clearance hold.</p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button className="btn-secondary" style={{ fontSize: '0.8125rem' }}>View Evidence Logs (3 Files)</button>
+                <button className="btn-primary" style={{ fontSize: '0.8125rem' }}>Submit Counter Evidence</button>
               </div>
             </div>
           </div>
