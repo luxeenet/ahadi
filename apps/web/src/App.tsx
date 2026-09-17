@@ -42,6 +42,7 @@ export function App() {
   const [newDueDate, setNewDueDate] = useState('');
 
   const [commitments, setCommitments] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [trustProfile, setTrustProfile] = useState<any>(null);
 
@@ -49,7 +50,7 @@ export function App() {
     try {
       const res = await apiClient.get('/commitments');
       const apiData = res.data.data || res.data;
-      if (Array.isArray(apiData) && apiData.length > 0) {
+      if (Array.isArray(apiData)) {
         setCommitments(apiData.map((item: any) => ({
           id: item.publicId || item.id,
           title: item.title,
@@ -65,17 +66,41 @@ export function App() {
         })));
       }
     } catch (err) {
-      console.log('No backend commitments loaded yet, ready for creation.');
+      console.log('No backend commitments loaded yet.');
+    }
+  };
+
+  const fetchBusinesses = async () => {
+    try {
+      const res = await apiClient.get('/businesses');
+      const apiData = res.data.data || res.data;
+      if (Array.isArray(apiData)) {
+        setBusinesses(apiData);
+      }
+    } catch (err) {
+      console.log('No backend businesses loaded yet.');
+    }
+  };
+
+  const fetchTrustProfile = async (userId: string) => {
+    try {
+      const res = await apiClient.get(`/trust/USER/${userId}`);
+      setTrustProfile(res.data.data || res.data);
+    } catch (err) {
+      console.log('Trust profile loading...');
     }
   };
 
   useEffect(() => {
+    fetchBusinesses();
     const storedToken = localStorage.getItem('ahadi_access_token');
     if (storedToken) {
       apiClient.get('/auth/me')
         .then(res => {
-          setUser(res.data.data || res.data);
+          const userData = res.data.data || res.data;
+          setUser(userData);
           fetchCommitments();
+          if (userData?.id) fetchTrustProfile(userData.id);
         })
         .catch(() => localStorage.removeItem('ahadi_access_token'));
     }
@@ -90,15 +115,18 @@ export function App() {
         const userData = res.data.data?.user || res.data.user;
         localStorage.setItem('ahadi_access_token', token);
         setUser(userData);
+        if (userData?.id) fetchTrustProfile(userData.id);
       } else {
         const res = await apiClient.post('/auth/register', { email, password, firstName, lastName });
         const token = res.data.data?.accessToken || res.data.accessToken;
         const userData = res.data.data?.user || res.data.user;
         localStorage.setItem('ahadi_access_token', token);
         setUser(userData);
+        if (userData?.id) fetchTrustProfile(userData.id);
       }
       setShowAuthModal(false);
       fetchCommitments();
+      fetchBusinesses();
     } catch (err: any) {
       alert(err.response?.data?.error?.message || err.response?.data?.message || 'Authentication failed. Please check credentials.');
     }
@@ -151,7 +179,6 @@ export function App() {
       alert(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to create commitment on backend.');
     }
   };
-
 
   const filteredCommitments = commitments.filter(c => {
     const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -236,7 +263,7 @@ export function App() {
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '0.875rem', color: '#e5e7eb', fontWeight: 600 }}>{user.email}</span>
-                <button className="btn-secondary" style={{ padding: '6px 12px' }} onClick={() => { localStorage.removeItem('ahadi_access_token'); setUser(null); }}>
+                <button className="btn-secondary" style={{ padding: '6px 12px' }} onClick={() => { localStorage.removeItem('ahadi_access_token'); setUser(null); setCommitments([]); }}>
                   <LogOut style={{ width: '16px', height: '16px' }} />
                 </button>
               </div>
@@ -264,20 +291,20 @@ export function App() {
                   Make Commitments. Prove Reliability. Build Global Trust.
                 </h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '24px' }}>
-                  AHADI tracks, verifies, and records promise fulfillment across sectors — from technical service delivery to micro-finance. Your reputation is immutable and auditable.
+                  AHADI tracks, verifies, and records promise fulfillment across sectors. Your reputation is immutable and auditable.
                 </p>
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Verified Trust Score</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>98.4 / 100</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Overall Score</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#34d399' }}>{trustProfile?.overallScore || '50.0'} / 100</span>
                   </div>
                   <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Active Promises</span>
                     <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#818cf8' }}>{commitments.length} Active</span>
                   </div>
                   <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>On-Time Rate</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8' }}>99.2%</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Timeliness Score</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8' }}>{trustProfile?.timelinessScore || '50.0'}%</span>
                   </div>
                 </div>
               </div>
@@ -316,51 +343,60 @@ export function App() {
             </div>
 
             {/* Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
-              {filteredCommitments.map((c) => (
-                <div key={c.id} className="glass-panel glass-panel-interactive" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#818cf8', fontWeight: 600 }}>{c.id}</span>
-                      <span style={{
-                        padding: '4px 10px',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        background: c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.15)' : c.status === 'AT_RISK' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                        color: c.status === 'VERIFIED' ? '#34d399' : c.status === 'AT_RISK' ? '#fb7185' : '#a5b4fc',
-                        border: `1px solid ${c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.3)' : c.status === 'AT_RISK' ? 'rgba(244, 63, 94, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
-                      }}>
-                        {c.status}
-                      </span>
-                    </div>
-
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>{c.title}</h3>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <User style={{ width: '16px', height: '16px', color: 'var(--text-subtle)' }} />
-                        <span>Promisor: <strong style={{ color: '#f3f4f6' }}>{c.promisor}</strong></span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Clock style={{ width: '16px', height: '16px', color: 'var(--text-subtle)' }} />
-                        <span>Deadline: {c.dueDate}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {filteredCommitments.length === 0 ? (
+              <div className="glass-panel" style={{ padding: '48px', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>No commitments found for your account.</p>
+                <button className="btn-primary" style={{ margin: '0 auto' }} onClick={() => setShowCreateModal(true)}>
+                  <Plus style={{ width: '18px', height: '18px' }} /> Create First Commitment
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+                {filteredCommitments.map((c) => (
+                  <div key={c.id} className="glass-panel glass-panel-interactive" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Commitment Value</span>
-                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff' }}>{c.value}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#818cf8', fontWeight: 600 }}>{c.id}</span>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.15)' : c.status === 'AT_RISK' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                          color: c.status === 'VERIFIED' ? '#34d399' : c.status === 'AT_RISK' ? '#fb7185' : '#a5b4fc',
+                          border: `1px solid ${c.status === 'VERIFIED' ? 'rgba(16, 185, 129, 0.3)' : c.status === 'AT_RISK' ? 'rgba(244, 63, 94, 0.3)' : 'rgba(99, 102, 241, 0.3)'}`
+                        }}>
+                          {c.status}
+                        </span>
+                      </div>
+
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>{c.title}</h3>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <User style={{ width: '16px', height: '16px', color: 'var(--text-subtle)' }} />
+                          <span>Promisor: <strong style={{ color: '#f3f4f6' }}>{c.promisor}</strong></span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Clock style={{ width: '16px', height: '16px', color: 'var(--text-subtle)' }} />
+                          <span>Deadline: {c.dueDate}</span>
+                        </div>
+                      </div>
                     </div>
-                    <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8125rem' }} onClick={() => setShowDetailsModal(c)}>
-                      View Details <ChevronRight style={{ width: '14px', height: '14px' }} />
-                    </button>
+
+                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', display: 'block' }}>Commitment Value</span>
+                        <span style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff' }}>{c.value}</span>
+                      </div>
+                      <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8125rem' }} onClick={() => setShowDetailsModal(c)}>
+                        View Details <ChevronRight style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 
@@ -369,7 +405,7 @@ export function App() {
           <div className="glass-panel" style={{ padding: '32px' }}>
             <h2 className="text-gradient" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px' }}>Trust DNA Profile & Score Breakdown</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
-              Your Trust DNA is generated by evaluating your track record across multiple verifiable dimensions. It cannot be bought or manipulated.
+              Your Trust DNA is generated by evaluating your track record across multiple verifiable dimensions.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
               <div className="glass-panel" style={{ padding: '24px' }}>
@@ -377,7 +413,7 @@ export function App() {
                   <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Reliability Score</span>
                   <CheckCircle2 style={{ color: '#34d399' }} />
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>96.5 %</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>{trustProfile?.reliabilityScore || '50.0'} %</div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Based on dispute-free fulfillment</p>
               </div>
               <div className="glass-panel" style={{ padding: '24px' }}>
@@ -385,7 +421,7 @@ export function App() {
                   <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Completion Score</span>
                   <Award style={{ color: '#818cf8' }} />
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>98.2 %</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>{trustProfile?.completionScore || '50.0'} %</div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Percentage of accepted promises completed</p>
               </div>
               <div className="glass-panel" style={{ padding: '24px' }}>
@@ -393,7 +429,7 @@ export function App() {
                   <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Timeliness Index</span>
                   <Clock style={{ color: '#38bdf8' }} />
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>99.0 %</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>{trustProfile?.timelinessScore || '50.0'} %</div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Fulfillment before or on target deadline</p>
               </div>
             </div>
@@ -407,37 +443,24 @@ export function App() {
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
               Explore verified companies and professionals with publicly auditable Trust DNA.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-              <div className="glass-panel" style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
-                  <Building2 style={{ color: '#818cf8', width: '32px', height: '32px' }} />
-                  <div>
-                    <h4 style={{ color: '#fff', fontWeight: 700 }}>Kibo Solar & Engineering</h4>
-                    <span style={{ fontSize: '0.75rem', color: '#34d399' }}>Verified Enterprise</span>
+            {businesses.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>No registered business profiles found on backend database.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                {businesses.map((b: any) => (
+                  <div key={b.id} className="glass-panel" style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+                      <Building2 style={{ color: '#818cf8', width: '32px', height: '32px' }} />
+                      <div>
+                        <h4 style={{ color: '#fff', fontWeight: 700 }}>{b.name}</h4>
+                        <span style={{ fontSize: '0.75rem', color: '#34d399' }}>{b.verificationLevel || 'Registered'}</span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>{b.description || b.category}</p>
                   </div>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Specialized in solar installations, mini-grid wiring, and industrial power backup systems.</p>
-                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                  <span>Completed Contracts: <strong>48</strong></span>
-                  <span style={{ color: '#34d399', fontWeight: 700 }}>98.9 Score</span>
-                </div>
+                ))}
               </div>
-
-              <div className="glass-panel" style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
-                  <Briefcase style={{ color: '#38bdf8', width: '32px', height: '32px' }} />
-                  <div>
-                    <h4 style={{ color: '#fff', fontWeight: 700 }}>Azam Logistics Ltd</h4>
-                    <span style={{ fontSize: '0.75rem', color: '#38bdf8' }}>Corporate Fleet</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Freight logistics, cross-border cargo delivery, and warehouse fulfillment.</p>
-                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                  <span>Completed Contracts: <strong>124</strong></span>
-                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>97.5 Score</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -448,22 +471,12 @@ export function App() {
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
               Transparent evidence submission and mediator-guided dispute resolution system.
             </p>
-            <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid #f43f5e' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: '#f43f5e' }}>DISPUTE #DSP-9041</span>
-                <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700 }}>MEDIATION IN PROGRESS</span>
-              </div>
-              <h4 style={{ color: '#fff', fontWeight: 700, marginBottom: '8px' }}>Commercial Office Supply Delivery</h4>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>Reason: Delivery delayed beyond agreed contract window due to customs clearance hold.</p>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button className="btn-secondary" style={{ fontSize: '0.8125rem' }}>View Evidence Logs (3 Files)</button>
-                <button className="btn-primary" style={{ fontSize: '0.8125rem' }}>Submit Counter Evidence</button>
-              </div>
-            </div>
+            <p style={{ color: 'var(--text-muted)' }}>No active disputes reported for your commitments.</p>
           </div>
         )}
 
       </main>
+
 
       {/* ── CREATE COMMITMENT MODAL ───────────────────────────────────────── */}
       {showCreateModal && (

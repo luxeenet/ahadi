@@ -104,4 +104,15 @@ export class BusinessesService {
 
     return business;
   }
+
+  async listBusinesses(): Promise<any[]> {
+    return this.prisma.business.findMany({
+      where: { deletedAt: null },
+      include: {
+        services: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
+

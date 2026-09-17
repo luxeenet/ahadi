@@ -16,9 +16,16 @@ export class BusinessesController {
     return this.businessesService.createBusiness(req.user.id, dto);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'List all active verified business profiles' })
+  async listBusinesses(): Promise<any> {
+    return this.businessesService.listBusinesses();
+  }
+
   @Get(':idOrSlug')
   @ApiOperation({ summary: 'Get business details by ID or Slug' })
   async getBusiness(@Param('idOrSlug') idOrSlug: string): Promise<any> {
     return this.businessesService.getBusiness(idOrSlug);
   }
 }
+
