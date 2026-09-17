@@ -8,7 +8,7 @@ export class LedgerService {
   async createEscrowHold(commitmentId: string, amount: number, currency: string = 'TZS'): Promise<any> {
     const entry = await this.prisma.ledgerAccount.create({
       data: {
-        type: 'ESCROW_HOLD',
+        type: 'ESCROW',
         entityType: 'COMMITMENT',
         entityId: commitmentId,
         currency,

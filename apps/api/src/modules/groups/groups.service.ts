@@ -6,9 +6,12 @@ export class GroupsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createGroup(creatorUserId: string, data: { name: string; type?: any; description?: string }): Promise<any> {
+    const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random() * 10000);
     const group = await this.prisma.group.create({
       data: {
+        publicId: `GRP-${Math.floor(100000 + Math.random() * 900000)}`,
         name: data.name,
+        slug,
         type: 'COMMUNITY',
         description: data.description,
         createdById: creatorUserId,
