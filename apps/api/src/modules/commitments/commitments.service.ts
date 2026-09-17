@@ -213,7 +213,7 @@ export class CommitmentsService {
     return this.prisma.commitment.findMany({
       where: {
         OR: [
-          { creatorUserId: userId },
+          { creatorId: userId },
           { promisorUserId: userId },
           { promiseeUserId: userId },
         ],
@@ -226,5 +226,6 @@ export class CommitmentsService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
 }
 

@@ -1,7 +1,8 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import pino from 'pino';
@@ -54,12 +55,9 @@ async function bootstrap(): Promise<void> {
     ],
   });
 
-  // ── API Versioning ────────────────────────────────────────────────────────
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: apiVersion,
-    prefix: 'api/',
-  });
+  // ── Global Route Prefix ───────────────────────────────────────────────────
+  app.setGlobalPrefix('v1');
+
 
   // ── Global Validation Pipe ────────────────────────────────────────────────
   // Validates and transforms all request DTOs.
