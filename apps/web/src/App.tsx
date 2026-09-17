@@ -20,7 +20,7 @@ import './index.css';
 import { apiClient } from './api/client';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'commitments' | 'trust' | 'businesses' | 'disputes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'commitments' | 'trust' | 'businesses' | 'marketplace' | 'groups' | 'disputes' | 'ai'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'ACTIVE' | 'VERIFIED' | 'AT_RISK'>('ALL');
   
@@ -229,7 +229,10 @@ export function App() {
               { id: 'commitments', label: 'Commitments', icon: FileText },
               { id: 'trust', label: 'Trust DNA', icon: Award },
               { id: 'businesses', label: 'Businesses', icon: Building2 },
+              { id: 'marketplace', label: 'Marketplace', icon: Search },
+              { id: 'groups', label: 'Groups', icon: User },
               { id: 'disputes', label: 'Disputes', icon: Scale },
+              { id: 'ai', label: 'AI Assistant', icon: Sparkles },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -466,6 +469,93 @@ export function App() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── MARKETPLACE TAB CONTENT ─────────────────────────────────────── */}
+        {activeTab === 'marketplace' && (
+          <div className="crdb-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px', color: '#ffffff' }}>Verified Marketplace & Provider Discovery</h2>
+            <p style={{ color: '#9ca3af', marginBottom: '32px' }}>
+              Discover verified contractors, solar engineers, and technicians with transparent auditable Trust DNA.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              <div className="crdb-card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div>
+                    <h4 style={{ color: '#fff', fontSize: '1.125rem', fontWeight: 700 }}>CRDB Certified Energy Solutions</h4>
+                    <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>✓ Business Verified • Solar & Grid Wiring</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '0.875rem', color: '#9ca3af', marginBottom: '16px' }}>
+                  <span>⭐ 98.4% Trust DNA</span>
+                  <span>📦 48 Promises Kept</span>
+                </div>
+                <button className="btn-crdb-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowCreateModal(true)}>
+                  Initiate Direct Commitment
+                </button>
+              </div>
+
+              <div className="crdb-card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div>
+                    <h4 style={{ color: '#fff', fontSize: '1.125rem', fontWeight: 700 }}>Kilimanjaro Logistics & Freight</h4>
+                    <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>✓ Enterprise Verified • Cold Chain</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '0.875rem', color: '#9ca3af', marginBottom: '16px' }}>
+                  <span>⭐ 96.8% Trust DNA</span>
+                  <span>📦 112 Promises Kept</span>
+                </div>
+                <button className="btn-crdb-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowCreateModal(true)}>
+                  Initiate Direct Commitment
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── GROUPS TAB CONTENT ───────────────────────────────────────────── */}
+        {activeTab === 'groups' && (
+          <div className="crdb-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px', color: '#ffffff' }}>Chama & Multi-Party Savings Pools</h2>
+            <p style={{ color: '#9ca3af', marginBottom: '32px' }}>
+              Co-manage community investments, revolving savings pools, and shared project commitments with full transparency.
+            </p>
+            <div className="crdb-card" style={{ padding: '24px', maxWidth: '480px' }}>
+              <h4 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 700, marginBottom: '8px' }}>Jitegemee Chama Savings Group</h4>
+              <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginBottom: '16px' }}>Monthly revolving fund for agricultural solar equipment upgrades.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px' }}>
+                <span style={{ color: '#9ca3af' }}>Current Pool Target:</span>
+                <span style={{ color: '#34d399', fontWeight: 700 }}>TZS 1,800,000 / 2,000,000</span>
+              </div>
+              <div style={{ width: '100%', height: '8px', background: '#0b251d', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
+                <div style={{ width: '90%', height: '100%', background: '#10b981' }} />
+              </div>
+              <span className="badge-crdb-emerald">90% Funded • Next Payout Oct 1</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── AI ASSISTANT TAB CONTENT ─────────────────────────────────────── */}
+        {activeTab === 'ai' && (
+          <div className="crdb-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '16px', color: '#ffffff' }}>AHADI AI Contract & Risk Intelligence</h2>
+            <p style={{ color: '#9ca3af', marginBottom: '32px' }}>
+              Autonomous risk engine analyzing milestone deadlines, evidence completeness, and counterparty reliability metrics.
+            </p>
+            <div style={{ padding: '20px', borderRadius: '8px', background: '#0b251d', border: '1px solid #1e5243', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+                <Sparkles style={{ color: '#34d399' }} />
+                <h4 style={{ color: '#fff', fontWeight: 700 }}>Active Portfolio Risk Status: LOW RISK (0.05)</h4>
+              </div>
+              <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginBottom: '12px' }}>
+                All active commitments have valid milestones and attached cryptographic evidence hashes. Counterparties have verified identity badges.
+              </p>
+              <button className="btn-crdb-primary" style={{ fontSize: '0.8125rem', padding: '6px 16px' }}>
+                Run Automated Audit Scan
+              </button>
+            </div>
           </div>
         )}
 

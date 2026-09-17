@@ -1,8 +1,11 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { MarketplaceController } from './marketplace.controller';
+import { MarketplaceService } from './marketplace.service';
 
 @Module({
-  controllers: [],
-  providers: [],
-  exports: [],
+  controllers: [MarketplaceController],
+  providers: [MarketplaceService],
+  exports: [MarketplaceService],
 })
 export class MarketplaceModule {}
+
