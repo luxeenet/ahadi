@@ -13,9 +13,9 @@ import {
   Building2,
   LogOut,
   X,
-  Briefcase,
   Scale
 } from 'lucide-react';
+
 import './index.css';
 import { apiClient } from './api/client';
 
