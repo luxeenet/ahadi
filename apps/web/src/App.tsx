@@ -1,21 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Shield, 
-  CheckCircle2, 
   Clock, 
-  AlertTriangle, 
   Award, 
   FileText, 
   Search, 
   Plus, 
   User, 
   ChevronRight,
-  Sparkles,
-  Lock,
-  Zap,
-  TrendingUp,
-  MapPin,
-  Briefcase
+  Sparkles
 } from 'lucide-react';
 import './index.css';
 
