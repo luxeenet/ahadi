@@ -205,4 +205,26 @@ export class CommitmentsService {
 
     return commitment;
   }
+
+  /**
+   * List commitments for a user
+   */
+  async listCommitments(userId: string): Promise<any[]> {
+    return this.prisma.commitment.findMany({
+      where: {
+        OR: [
+          { creatorUserId: userId },
+          { promisorUserId: userId },
+          { promiseeUserId: userId },
+        ],
+        deletedAt: null,
+      },
+      include: {
+        participants: true,
+        milestones: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
+

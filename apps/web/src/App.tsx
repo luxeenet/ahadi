@@ -41,65 +41,42 @@ export function App() {
   const [newValue, setNewValue] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
 
-  // Local state for commitments
-  const [commitments, setCommitments] = useState([
-    {
-      id: 'AH-882941',
-      title: 'Solar Panel Installation & Wiring',
-      category: 'TECHNICAL_SERVICE',
-      promisor: 'Juma Hassan (Fundi)',
-      promisee: 'Amina Salum',
-      status: 'ACTIVE',
-      dueDate: '2026-09-25',
-      value: 'TZS 1,200,000',
-      trustScore: 94.8,
-      evidenceCount: 3,
-      milestones: [
-        { title: 'Site Inspection & Roof Assessment', status: 'COMPLETED' },
-        { title: 'Inverter Mounting & Panel Wiring', status: 'ACTIVE' },
-        { title: 'Grid Connection & Metering Test', status: 'PENDING' }
-      ]
-    },
-    {
-      id: 'AH-719304',
-      title: 'Monthly Chama Micro-Fund Contribution',
-      category: 'SAVINGS_GROUP',
-      promisor: 'Kinondoni Women Chama',
-      promisee: 'Group Treasury',
-      status: 'VERIFIED',
-      dueDate: '2026-09-15',
-      value: 'TZS 250,000',
-      trustScore: 99.1,
-      evidenceCount: 12,
-      milestones: [
-        { title: 'Monthly Contribution Deposit', status: 'VERIFIED' }
-      ]
-    },
-    {
-      id: 'AH-610294',
-      title: 'Commercial Office Supply Delivery',
-      category: 'BUSINESS_DELIVERY',
-      promisor: 'Kibo Logistics Ltd',
-      promisee: 'Azam Tech Hub',
-      status: 'AT_RISK',
-      dueDate: '2026-09-18',
-      value: 'TZS 4,500,000',
-      trustScore: 88.4,
-      evidenceCount: 1,
-      milestones: [
-        { title: 'Warehouse Dispatch', status: 'COMPLETED' },
-        { title: 'Customs Clearance & Delivery', status: 'AT_RISK' }
-      ]
-    }
-  ]);
-
+  const [commitments, setCommitments] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [trustProfile, setTrustProfile] = useState<any>(null);
+
+  const fetchCommitments = async () => {
+    try {
+      const res = await apiClient.get('/commitments');
+      const apiData = res.data.data || res.data;
+      if (Array.isArray(apiData) && apiData.length > 0) {
+        setCommitments(apiData.map((item: any) => ({
+          id: item.publicId || item.id,
+          title: item.title,
+          category: item.category || 'TECHNICAL_SERVICE',
+          promisor: item.promisorUserId || 'Verified User',
+          promisee: item.promiseeUserId || 'Counterparty',
+          status: item.status || 'ACTIVE',
+          dueDate: item.dueDate ? new Date(item.dueDate).toISOString().split('T')[0] : '2026-10-01',
+          value: item.value ? `TZS ${Number(item.value).toLocaleString()}` : 'TZS 500,000',
+          trustScore: 95.0,
+          evidenceCount: item.evidenceCount || 0,
+          milestones: item.milestones?.length ? item.milestones : [{ title: 'Initial Deliverable', status: 'ACTIVE' }]
+        })));
+      }
+    } catch (err) {
+      console.log('No backend commitments loaded yet, ready for creation.');
+    }
+  };
 
   useEffect(() => {
     const storedToken = localStorage.getItem('ahadi_access_token');
     if (storedToken) {
       apiClient.get('/auth/me')
-        .then(res => setUser(res.data.data))
+        .then(res => {
+          setUser(res.data.data || res.data);
+          fetchCommitments();
+        })
         .catch(() => localStorage.removeItem('ahadi_access_token'));
     }
   }, []);
@@ -109,41 +86,72 @@ export function App() {
     try {
       if (authMode === 'LOGIN') {
         const res = await apiClient.post('/auth/login', { identifier: email, password });
-        localStorage.setItem('ahadi_access_token', res.data.data.accessToken);
-        setUser(res.data.data.user);
+        const token = res.data.data?.accessToken || res.data.accessToken;
+        const userData = res.data.data?.user || res.data.user;
+        localStorage.setItem('ahadi_access_token', token);
+        setUser(userData);
       } else {
         const res = await apiClient.post('/auth/register', { email, password, firstName, lastName });
-        localStorage.setItem('ahadi_access_token', res.data.data.accessToken);
-        setUser(res.data.data.user);
+        const token = res.data.data?.accessToken || res.data.accessToken;
+        const userData = res.data.data?.user || res.data.user;
+        localStorage.setItem('ahadi_access_token', token);
+        setUser(userData);
       }
       setShowAuthModal(false);
+      fetchCommitments();
     } catch (err: any) {
-      alert(err.response?.data?.error?.message || 'Authentication failed. Make sure API backend is running locally.');
+      alert(err.response?.data?.error?.message || err.response?.data?.message || 'Authentication failed. Please check credentials.');
     }
   };
 
-  const handleCreateCommitment = (e: React.FormEvent) => {
+  const handleCreateCommitment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newId = `AH-${Math.floor(100000 + Math.random() * 900000)}`;
-    const newCommitment = {
-      id: newId,
-      title: newTitle,
-      category: 'TECHNICAL_SERVICE',
-      promisor: user ? `${user.email}` : 'Current User',
-      promisee: 'Verified Counterparty',
-      status: 'ACTIVE',
-      dueDate: newDueDate || '2026-10-01',
-      value: `TZS ${Number(newValue || 500000).toLocaleString()}`,
-      trustScore: 95.0,
-      evidenceCount: 0,
-      milestones: [{ title: 'Initial Deliverable', status: 'ACTIVE' }]
-    };
+    if (!user) {
+      alert('Please sign in or register an account first to publish a commitment!');
+      setShowAuthModal(true);
+      return;
+    }
 
-    setCommitments([newCommitment, ...commitments]);
-    setShowCreateModal(false);
-    setNewTitle('');
-    setNewValue('');
+    try {
+      const payload = {
+        title: newTitle,
+        category: 'TECHNICAL_SERVICE',
+        promisorType: 'USER',
+        promisorUserId: user.id,
+        promiseeType: 'USER',
+        promiseeUserId: user.id,
+        value: Number(newValue) || 500000,
+        currency: 'TZS',
+        dueDate: newDueDate ? new Date(newDueDate).toISOString() : new Date(Date.now() + 864000000).toISOString()
+      };
+
+      const res = await apiClient.post('/commitments', payload);
+      const created = res.data.data || res.data;
+      
+      const newCommitmentFormatted = {
+        id: created.publicId || created.id || `AH-${Math.floor(100000 + Math.random() * 900000)}`,
+        title: created.title || newTitle,
+        category: created.category || 'TECHNICAL_SERVICE',
+        promisor: user.email || 'You',
+        promisee: 'Verified Counterparty',
+        status: created.status || 'ACTIVE',
+        dueDate: newDueDate || '2026-10-01',
+        value: `TZS ${Number(newValue || 500000).toLocaleString()}`,
+        trustScore: 98.0,
+        evidenceCount: 0,
+        milestones: [{ title: 'Site Inspection & Setup', status: 'ACTIVE' }]
+      };
+
+      setCommitments([newCommitmentFormatted, ...commitments]);
+      setShowCreateModal(false);
+      setNewTitle('');
+      setNewValue('');
+      setNewDueDate('');
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || err.response?.data?.message || 'Failed to create commitment on backend.');
+    }
   };
+
 
   const filteredCommitments = commitments.filter(c => {
     const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.id.toLowerCase().includes(searchQuery.toLowerCase());

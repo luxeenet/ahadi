@@ -16,6 +16,12 @@ export class CommitmentsController {
     return this.commitmentsService.createCommitment(req.user.id, dto);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'List commitments for current user' })
+  async listCommitments(@Req() req: any): Promise<any> {
+    return this.commitmentsService.listCommitments(req.user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get commitment details by ID or Public ID' })
   async getCommitment(@Param('id') id: string): Promise<any> {
@@ -28,3 +34,4 @@ export class CommitmentsController {
     return this.commitmentsService.transitionStatus(id, { ...dto, actorId: req.user.id });
   }
 }
+
