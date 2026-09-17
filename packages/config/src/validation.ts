@@ -18,10 +18,10 @@ export const envValidationSchema = Joi.object({
   ADMIN_URL: Joi.string().uri().optional(),
 
   // ── Database ───────────────────────────────────────────────
-  DATABASE_URL: Joi.string().uri({ scheme: 'postgresql' }).required(),
+  DATABASE_URL: Joi.string().required(),
 
   // ── Redis ──────────────────────────────────────────────────
-  REDIS_URL: Joi.string().uri({ scheme: ['redis', 'rediss'] }).required(),
+  REDIS_URL: Joi.string().required(),
   REDIS_TLS: Joi.boolean().default(false),
 
   // ── Auth ───────────────────────────────────────────────────

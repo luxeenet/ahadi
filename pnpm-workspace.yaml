@@ -10,3 +10,4 @@ allowBuilds:
   msgpackr-extract: set this to true or false
   prisma: set this to true or false
   sharp: set this to true or false
+  sqlite3: true
